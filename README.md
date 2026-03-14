@@ -45,7 +45,7 @@ Atalhos do teclado: `→` avança, `←` volta, `Home` reinicia, `End` pula dire
 ![Painel do exercício](assets/panel.png)
 
 **Lado esquerdo:**
-- O **rastreador de pontuação** mostra todos os padrões com os pesos atuais — verde = certo, vermelho = errado, borda laranja = padrão sendo processado agora
+- O painel acima mostra todos os padrões com os pesos atuais — verde = certo, vermelho = errado, borda laranja = padrão sendo processado agora
 - Abaixo aparecem as informações do padrão (x₁, x₂, d) e a matemática da fase atual
 
 **Lado direito (gráfico):**
@@ -63,17 +63,6 @@ Atalhos do teclado: `→` avança, `←` volta, `Home` reinicia, `End` pula dire
 O Exercício 5 tem 66 passos de treinamento. Para pular direto para a avaliação dos 8 vetores de teste, clique em **→ Test results** ou pressione `End`.
 
 ---
-
-## Rodando localmente
-
-```bash
-pip install flask
-python app.py
-# abre http://localhost:5000 automaticamente
-```
-
----
-
 ## Parâmetros (conforme a apostila)
 
 | Símbolo | Valor | Significado |
@@ -86,8 +75,7 @@ Regra: y\* > +δ → y=+1 / y\* < −δ → y=−1 / entre os dois → y=0 (atua
 
 ---
 
-## Estrutura do projeto
-
+## Estrutura do projeto (caso precise)
 ```
 ├── perceptron.py      ← o algoritmo
 ├── app.py             ← servidor Flask
