@@ -45,8 +45,11 @@ Atalhos do teclado: `→` avança, `←` volta, `Home` reinicia, `End` pula dire
 ![Painel do exercício](assets/panel.png)
 
 **Lado esquerdo:**
-- O painel acima mostra todos os padrões com os pesos atuais — verde = certo, vermelho = errado, borda laranja = padrão sendo processado agora
+- O painel acima mostra todos os padrões com os pesos atuais — verde = certo, vermelho = errado.
 - Abaixo aparecem as informações do padrão (x₁, x₂, d) e a matemática da fase atual
+
+
+![Painel do exercício 2](assets/panel_2.png)
 
 **Lado direito (gráfico):**
 - Pontos verdes = classe A (d=+1), pontos vermelhos = classe B (d=−1)
