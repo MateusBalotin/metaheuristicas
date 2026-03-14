@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ data.config.name }}</title>
+<style>
+:root{
+  --bg:#fafaf8;--bg2:#f3f2ef;--bg3:#eae9e5;
+  --border:#d4d2cb;--border2:#c8c6be;--border3:#e2e1dc;
+  --text:#1a1a18;--text2:#5a5a56;--text3:#888780;
+  --success-bg:#e0f4ec;--success:#065f46;
+  --warn-bg:#fff0e0;--warn:#92400e;
+  --info-bg:#e8f0fb;--info:#1e3a6e;
+  --purple-bg:#f0e8ff;--purple:#6d28d9;
+  --green-bg:#e0f4ec;--green:#065f46;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1a1a18;--bg2:#242420;--bg3:#2e2e2a;
+    --border:#3a3a36;--border2:#4a4a46;--border3:#333330;
+    --text:#e8e6de;--text2:#a8a69e;--text3:#888780;
+    --success-bg:#052e1c;--success:#6ee7b7;
+    --warn-bg:#2d1a00;--warn:#fcd38d;
+    --info-bg:#0d1f3c;--info:#93c5fd;
+    --purple-bg:#1e1030;--purple:#c4b5fd;
+    --green-bg:#052e1c;--green:#6ee7b7;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);padding:20px;max-width:1140px;margin:0 auto}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.topbar a{font-size:12px;color:var(--text3);text-decoration:none}
+.topbar a:hover{color:var(--text)}
+.topbar-sep{color:var(--text3);font-size:12px}
+h1{font-size:18px;font-weight:600;margin-bottom:4px}
+.subtitle{font-size:12px;color:var(--text3);margin-bottom:16px}
+.nav{display:flex;align-items:center;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+.nav button{font-size:12px;padding:5px 14px;cursor:pointer;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text)}
+.nav button:hover{background:var(--bg2)}
+.nav button:disabled{opacity:.35;cursor:default}
+.slbl{font-size:13px;font-weight:500;flex:1}
+.card{border:0.5px solid var(--border3);border-radius:8px;padding:9px 13px;margin:0 0 8px;font-size:13px;background:var(--bg)}
+.ct{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);margin:0 0 6px}
+.tag{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:500;display:inline-block}
+.tok{background:var(--success-bg);color:var(--success)}
+.tup{background:var(--warn-bg);color:var(--warn)}
+.badge{font-size:10px;padding:2px 9px;border-radius:10px;font-weight:500;margin-left:6px}
+.b1{background:var(--info-bg);color:var(--info)}
+.b2{background:var(--purple-bg);color:var(--purple)}
+.b3{background:var(--warn-bg);color:var(--warn)}
+.b4{background:var(--green-bg);color:var(--green)}
+.hl{color:var(--warn);font-weight:500}
+.split{display:grid;grid-template-columns:1fr 320px;gap:12px;align-items:start}
+@media(max-width:720px){.split{grid-template-columns:1fr}}
+.deriv{font-family:monospace;font-size:12px;line-height:2.1;border-left:2px solid var(--border3);padding-left:10px;margin:4px 0}
+.deriv span{display:block}
+.res-up{display:inline-block;padding:3px 10px;border-radius:5px;font-family:monospace;font-size:12px;font-weight:500;background:#fff7e0;color:#92400e;border:0.5px solid #f5d87a;margin-top:4px}
+.res-lo{display:inline-block;padding:3px 10px;border-radius:5px;font-family:monospace;font-size:12px;font-weight:500;background:#e8f0fb;color:#1e3a6e;border:0.5px solid #aac4ee;margin-top:4px}
+.leg{display:flex;gap:10px;font-size:10px;color:var(--text3);margin:0 0 4px;align-items:center}
+.ld{display:inline-block;width:18px;height:0;border-top:2px dashed;vertical-align:middle;margin-right:3px}
+.offnote{font-size:10px;color:var(--text3);font-style:italic;margin:3px 0 0;min-height:12px}
+.sc-cell{border-radius:5px;padding:4px 3px;text-align:center;font-family:monospace;font-size:10px;border:0.5px solid var(--border3);background:var(--bg2);color:var(--text2)}
+.sc-ok{background:#e0f4ec;color:#065f46;border-color:#6ee7b7}
+.sc-err{background:#fff0e0;color:#92400e;border-color:#fcd38d}
+.sc-cur{outline:2px solid #EF9F27;outline-offset:1px}
+.test-cell{border-radius:6px;padding:6px 4px;text-align:center;font-family:monospace;font-size:11px;border:0.5px solid var(--border3)}
+.test-ok{background:var(--success-bg);color:var(--success);border-color:#6ee7b7}
+.test-err{background:var(--warn-bg);color:var(--warn);border-color:#fcd38d}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 1</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">{{ ex_id | upper }}</span>
+</div>
+
+<h1>{{ data.config.name }}</h1>
+<p class="subtitle">
+  {{ data.config.train | length }} training patterns ·
+  {{ data.config.n_iters }} iterations ·
+  {% if data.config.test %} {{ data.config.test | length }} test vectors · {% endif %}
+  δ={{ data.config.delta }}, α={{ data.config.alpha }} · UFPR MNE 740
+</p>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  {% if data.config.test %}
+  <button onclick="goToTest()" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Test results</button>
+  {% endif %}
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span><span class="ld" style="border-color:#BA7517"></span>y*=+δ</span>
+      <span><span class="ld" style="border-color:#185FA5"></span>y*=−δ</span>
+    </div>
+    <canvas id="cv" width="320" height="500" style="width:320px;height:500px;border-radius:6px;display:block"></canvas>
+    <div class="offnote" id="cnote"></div>
+  </div>
+</div>
+
+<script src="/static/js/perceptron.js"></script>
+<script src="/static/js/ui.js"></script>
+<script>
+var EX_ID   = {{ ex_id | tojson }};
+var PHASES  = 4;
+var exData  = buildSteps(EX_ID);
+var cfg     = EXERCISES[EX_ID];
+var TOTAL_TRAIN = exData.steps.length * PHASES;
+var TOTAL   = TOTAL_TRAIN + 1;
+var cur     = 0;
+
+exData.steps.forEach(function(s) { s.trainPts = cfg.train; });
+
+var renderer = new CanvasRenderer(document.getElementById('cv'), EX_ID);
+renderer._exId = EX_ID;
+
+function si()     { return Math.floor(cur / PHASES); }
+function ph()     { return cur % PHASES; }
+function isTest() { return cur === TOTAL_TRAIN; }
+
+function render() {
+  document.getElementById('bprev').disabled = (cur === 0);
+  document.getElementById('bnext').disabled = (cur === TOTAL - 1);
+
+  if (isTest()) {
+    document.getElementById('slbl').innerHTML =
+      '<span class="badge b1">Test results</span> — after ' + cfg.nIters + ' iterations';
+    document.getElementById('lp').innerHTML = testPanelHTML(exData);
+    var fw = exData.finalW;
+    renderer.draw(fw.w1, fw.w2, fw.th, cfg.delta, 3, null, cfg.test, true);
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    var phNames  = ['calculation','weight update','line y*=+δ','line y*=−δ'];
+    var phBadges = ['b1','b2','b3','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Iter ' + step.iter + ' — Pat n=' + step.p.n +
+      ' (' + (step.pi+1) + '/' + cfg.train.length + ') ' +
+      '<span class="badge ' + phBadges[phase] + '">' + phNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = buildPanel(step, phase, cfg);
+    var w1 = phase < 2 ? step.wb.w1 : step.wa.w1;
+    var w2 = phase < 2 ? step.wb.w2 : step.wa.w2;
+    var th = phase < 2 ? step.wb.th : step.wa.th;
+    renderer.draw(w1, w2, th, cfg.delta, phase, step.pi, cfg.train, false);
+  }
+}
+
+function go(d)      { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i)    { cur = i; render(); }
+function goToTest() { cur = TOTAL_TRAIN; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+  if (e.key === 'Home')       { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')        { e.preventDefault(); goToTest(); }
+});
+
+render();
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+</script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exercise 5 — Perceptron</title>
+<link rel="stylesheet" href="js/style.css">
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 1</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 5</span>
+</div>
+<h1>Exercise 5 — 22 Training / 8 Test Vectors</h1>
+<p class="subtitle">22 patterns · 3 iterations · 8 test vectors · δ=0.2, α=1 · UFPR MNE 740</p>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goToTest()" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Test results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span><span class="ld" style="border-color:#BA7517"></span>y*=+δ</span>
+      <span><span class="ld" style="border-color:#185FA5"></span>y*=−δ</span>
+      <span>● x₁=0 and x₁=5</span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+    <div class="offnote" id="cnote"></div>
+  </div>
+</div>
+
+<script src="js/perceptron.js"></script>
+<script src="js/ui.js"></script>
+<script>
+var EX_ID  = 'ex5';
+var exData = buildSteps(EX_ID);
+var cfg    = EXERCISES[EX_ID];
+var PHASES = 4;
+var TOTAL_TRAIN = exData.steps.length * PHASES;
+var TOTAL  = TOTAL_TRAIN + 1; // +1 for test screen
+var cur    = 0;
+
+exData.steps.forEach(function(s) { s.trainPts = cfg.train; });
+
+var renderer = new CanvasRenderer(document.getElementById('cv'), EX_ID);
+renderer._exId = EX_ID;
+
+function si()      { return Math.floor(cur / PHASES); }
+function ph()      { return cur % PHASES; }
+function isTest()  { return cur === TOTAL_TRAIN; }
+
+function render() {
+  document.getElementById('bprev').disabled = (cur === 0);
+  document.getElementById('bnext').disabled = (cur === TOTAL - 1);
+
+  if (isTest()) {
+    document.getElementById('slbl').innerHTML =
+      '<span class="badge b1">Test results</span> — after 3 iterations';
+    document.getElementById('lp').innerHTML = testPanelHTML(exData);
+    var fw = exData.finalW;
+    renderer.draw(fw.w1, fw.w2, fw.th, cfg.delta, 3, null, cfg.test, true);
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    var phNames  = ['calculation','weight update','line y*=+δ','line y*=−δ'];
+    var phBadges = ['b1','b2','b3','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Iter ' + step.iter + ' — Pat n=' + step.p.n + ' (' + (step.pi+1) + '/' + cfg.train.length + ') ' +
+      '<span class="badge ' + phBadges[phase] + '">' + phNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = buildPanel(step, phase, cfg);
+    var w1 = phase < 2 ? step.wb.w1 : step.wa.w1;
+    var w2 = phase < 2 ? step.wb.w2 : step.wa.w2;
+    var th = phase < 2 ? step.wb.th : step.wa.th;
+    renderer.draw(w1, w2, th, cfg.delta, phase, step.pi, cfg.train, false, step.trainResults);
+  }
+}
+
+function go(d)       { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i)     { cur = i; render(); }
+function goToTest()  { cur = TOTAL_TRAIN; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+  if (e.key === 'Home')       { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')        { e.preventDefault(); goToTest(); }
+});
+
+render();
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+</script>
+</body>
+</html>
