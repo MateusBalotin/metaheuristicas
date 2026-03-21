@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 2.2 — MLP Backpropagation</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.alg-box{border:0.5px solid var(--border3);border-radius:8px;padding:12px 16px;background:var(--bg2);font-size:12px;line-height:2.2;font-family:monospace;margin-bottom:8px}
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:60px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+.cfg-bar input[type=range]{width:100px}
+.btn-sm{font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text)}
+.btn-sm:hover{background:var(--bg2)}
+.btn-accent{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.arch-vis{display:flex;align-items:center;gap:8px;font-size:11px;font-family:monospace;color:var(--text3);flex-wrap:wrap;margin-bottom:8px}
+.arch-node{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;border:1.5px solid}
+.arch-inp{background:var(--info-bg);border-color:var(--info);color:var(--info)}
+.arch-hid{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+.arch-out{background:var(--success-bg);border-color:var(--success);color:var(--success)}
+.arch-arrow{color:var(--text3);font-size:14px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 2.2</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">MLP Backpropagation</span>
+</div>
+<h1>Exercise 5 — MLP with Backpropagation</h1>
+<p class="subtitle">1 hidden layer · sigmoid activations · 22 training vectors · 8 test vectors · UFPR MNE 740</p>
+
+<!-- Algorithm summary -->
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Algorithm 2 — 1 hidden layer, sigmoid activations</summary>
+  <div class="alg-box" style="margin-top:8px">
+    <strong>Forward:</strong><br>
+    &nbsp;&nbsp;z_j* = Σᵢ v_ij·xᵢ + θa_j &nbsp;&nbsp;→&nbsp;&nbsp; z_j = σ(z_j*) = 1/(1+e<sup>−z*</sup>)<br>
+    &nbsp;&nbsp;y*   = Σⱼ w_j·z_j  + θb  &nbsp;&nbsp;&nbsp;&nbsp;→&nbsp;&nbsp; y   = σ(y*)<br>
+    <strong>Output layer correction:</strong><br>
+    &nbsp;&nbsp;Δw_j = α·y·(1−y)·(d−y)·z_j &nbsp;&nbsp;θb ← θb + α·y·(1−y)·(d−y)<br>
+    <strong>Hidden layer correction:</strong><br>
+    &nbsp;&nbsp;Δv_ij = α·(d−y)·y·(1−y)·w_j·z_j·(1−z_j)·xᵢ<br>
+    &nbsp;&nbsp;Δθa_j = α·(d−y)·y·(1−y)·w_j·z_j·(1−z_j)<br>
+    <strong>Stopping:</strong> max|Δw| ≤ tolerance &nbsp;or&nbsp; max iterations reached
+  </div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.8;margin-bottom:8px">
+    • Weights initialised randomly in [−0.5, 0.5]<br>
+    • Classification: y ≥ 0.5 → class +1, &nbsp;y &lt; 0.5 → class −1<br>
+    • Canvas shows the <strong>non-linear decision region</strong> — green = class +1, red = class −1
+  </div>
+</details>
+
+<!-- Config bar -->
+<div class="cfg-bar">
+  <label>Hidden neurons:</label>
+  <input type="number" id="inpHidden" value="4" min="1" max="10" step="1">
+  <label>α:</label>
+  <input type="number" id="inpAlpha" value="0.5" min="0.01" max="1" step="0.01" style="width:72px">
+  <label>Seed:</label>
+  <input type="number" id="inpSeed" value="42" min="0" max="9999" step="1" style="width:72px">
+  <button class="btn-sm btn-accent" onclick="rebuild()">↺ Rebuild</button>
+  <button class="btn-sm" onclick="randomSeed()">🎲 New seed</button>
+  <span id="archVis" class="arch-vis" style="margin-left:8px"></span>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goToTest()" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Test results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:rgba(29,200,140,0.4);border:1px solid rgba(29,200,140,0.7)"></span>
+        y≥0.5 → +1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:rgba(220,80,40,0.4);border:1px solid rgba(220,80,40,0.7)"></span>
+        y&lt;0.5 → −1
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+  </div>
+</div>
+
+<script src="js/perceptron.js"></script>
+<script src="js/mlp.js"></script>
+<script src="js/mlp-ui.js"></script>
+<script>
+var EX_ID  = 'mlp-ex5';
+var PHASES = 3;
+var exData, TOTAL, cur, renderer;
+
+function getConfig() {
+  return {
+    nHidden: parseInt(document.getElementById('inpHidden').value) || 4,
+    alpha:   parseFloat(document.getElementById('inpAlpha').value) || 0.5,
+    seed:    parseInt(document.getElementById('inpSeed').value) || 42,
+  };
+}
+
+function buildArchVis(nHidden) {
+  var el = document.getElementById('archVis');
+  var h = '<span style="color:var(--text3)">Architecture:</span> ';
+  h += '<span class="arch-node arch-inp" title="Input x1">x₁</span>';
+  h += '<span class="arch-node arch-inp" title="Input x2">x₂</span>';
+  h += '<span class="arch-arrow">→</span>';
+  for (var j = 1; j <= nHidden; j++)
+    h += '<span class="arch-node arch-hid" title="Hidden '+j+'">h'+j+'</span>';
+  h += '<span class="arch-arrow">→</span>';
+  h += '<span class="arch-node arch-out" title="Output">y</span>';
+  el.innerHTML = h;
+}
+
+function rebuild() {
+  var cfg = getConfig();
+  exData  = buildMLPSteps(EX_ID, cfg.nHidden, cfg.seed, cfg.alpha);
+  TOTAL   = exData.steps.length * PHASES + 1;
+  cur     = 0;
+  buildArchVis(cfg.nHidden);
+  renderer = new MLPCanvasRenderer(document.getElementById('cv'), EX_ID);
+  render();
+}
+
+function randomSeed() {
+  document.getElementById('inpSeed').value = Math.floor(Math.random() * 9999);
+  rebuild();
+}
+
+function si()    { return Math.floor(cur / PHASES); }
+function ph()    { return cur % PHASES; }
+function isEnd() { return cur === TOTAL - 1; }
+
+function render() {
+  document.getElementById('bprev').disabled = (cur === 0);
+  document.getElementById('bnext').disabled = (cur === TOTAL - 1);
+
+  if (isEnd()) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+    document.getElementById('lp').innerHTML   = mlpTestPanelHTML(exData);
+    renderer.draw(exData.finalWs, null, exData.cfg.train, false, exData.steps[exData.steps.length-1].trainResults);
+  } else {
+    var step   = exData.steps[si()];
+    var phase  = ph();
+    var phNames  = ['forward pass', 'output update', 'hidden update'];
+    var phBadges = ['b1', 'b2', 'b4'];
+    document.getElementById('slbl').innerHTML =
+      'Iter ' + step.iter + ' — Pat n=' + step.p.n + ' (' + (step.pi + 1) + '/22) ' +
+      '<span class="badge ' + phBadges[phase] + '">' + phNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = buildMLPPanel(step, phase, exData);
+
+    // Draw with weights appropriate to phase
+    var ws = (phase === 0) ? step.wsBefore : step.wsAfter;
+    renderer.draw(ws, step.pi, exData.cfg.train, false, step.trainResults);
+  }
+}
+
+function go(d)      { cur = Math.max(0, Math.min(TOTAL - 1, cur + d)); render(); }
+function goTo(i)    { cur = i; render(); }
+function goToTest() { goTo(TOTAL - 1); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft')                   { e.preventDefault(); go(-1); }
+  if (e.key === 'Home')                        { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')                         { e.preventDefault(); goTo(TOTAL - 1); }
+});
+
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+
+// Init on load
+rebuild();
+</script>
+</body>
+</html>

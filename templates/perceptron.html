@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Perceptron — {{ ex }}</title>
+<link rel="stylesheet" href="/static/js/style.css">
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 1 — Perceptron</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px" id="title"></span>
+</div>
+<h1 id="h1">Loading…</h1>
+<p class="subtitle" id="subtitle"></p>
+<div class="nav">
+  <button id="bprev" disabled>← Prev</button>
+  <button id="bnext">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button id="breset" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button id="btest" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Test results</button>
+</div>
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span><span class="ld" style="border-color:#BA7517"></span>y*=+δ</span>
+      <span><span class="ld" style="border-color:#185FA5"></span>y*=−δ</span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+  </div>
+</div>
+
+<script src="/static/js/canvas.js"></script>
+<script src="/static/js/perceptron_ui.js"></script>
+<script>
+var EX   = {{ ex | tojson }};
+var exData, PHASES = 4, nav, renderer, train, delta;
+
+fetch('/api/perceptron/' + EX)
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    exData = data;
+    train  = data.config.n_train;
+    delta  = data.config.delta;
+
+    document.getElementById('title').textContent   = EX.toUpperCase();
+    document.getElementById('h1').textContent      = data.steps[0] ? 'Perceptron — ' + EX.toUpperCase() : 'Perceptron';
+    document.getElementById('subtitle').textContent =
+      data.config.n_train + ' training patterns · ' + data.config.n_iters +
+      ' iterations · δ=' + data.config.delta + ', α=' + data.config.alpha + ' · UFPR MNE 740';
+
+    if (data.config.n_test === 0)
+      document.getElementById('btest').style.display = 'none';
+
+    renderer = new PerceptronCanvas(document.getElementById('cv'), data.config.canvas);
+    var TOTAL = data.steps.length * PHASES + 1;
+
+    nav = new NavController({
+      total: TOTAL,
+      onRender: function(cur) {
+        var isLast = cur === TOTAL - 1;
+        var si = Math.floor(cur / PHASES);
+        var ph = cur % PHASES;
+        if (isLast) {
+          document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+          document.getElementById('lp').innerHTML   = buildPerceptronTestPanel(exData);
+          renderer.draw(null, 3, exData.steps[0] ? [] : [], exData.final_weights);
+          // draw final state with all train points
+          renderer._ymin = data.config.canvas.y_def_min;
+          renderer._ymax = data.config.canvas.y_def_max;
+          renderer.ctx.clearRect(0,0,renderer.CW,renderer.CH);
+          renderer.drawGrid();
+          renderer._drawBands(exData.final_weights.w1, exData.final_weights.w2, exData.final_weights.theta, true, true);
+          // Get all train points from steps
+          var trainPts = data.steps.map(function(s){ return s.pattern; });
+          // Use unique patterns
+          var seen = {}, pts = [];
+          data.steps.forEach(function(s){ if(!seen[s.pattern.n]){seen[s.pattern.n]=1;pts.push(s.pattern);} });
+          pts.sort(function(a,b){return a.n-b.n;});
+          var lastResults = data.steps[data.steps.length-1].train_results;
+          renderer.drawPoints(pts, null, true, lastResults);
+        } else {
+          var step = data.steps[si], phase = ph;
+          var pNames  = ['calculation','weight update','line y*=+δ','line y*=−δ'];
+          var pBadges = ['b1','b2','b3','b4'];
+          document.getElementById('slbl').innerHTML =
+            'Iter ' + step.iter + ' — Pat n=' + step.pattern.n +
+            ' (' + (step.pi+1) + '/' + data.config.n_train + ') ' +
+            '<span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+          // Collect train points
+          var seen = {}, pts = [];
+          data.steps.forEach(function(s){ if(!seen[s.pattern.n]){seen[s.pattern.n]=1;pts.push(s.pattern);} });
+          pts.sort(function(a,b){return a.n-b.n;});
+          document.getElementById('lp').innerHTML = buildPerceptronPanel(step, phase, pts, data.config.delta);
+          renderer.draw(step, phase, pts, null);
+        }
+      }
+    });
+    nav.start();
+    window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function(){ nav.goTo(nav.cur); });
+  });
+</script>
+</body>
+</html>

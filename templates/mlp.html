@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLP Backpropagation</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:65px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+.btn-accent{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.arch{display:flex;align-items:center;gap:6px;font-size:11px;font-family:monospace;color:var(--text3);flex-wrap:wrap}
+.arch-node{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;border:1.5px solid}
+.n-in{background:var(--info-bg);border-color:var(--info);color:var(--info)}
+.n-hid{background:var(--purple-bg);border-color:var(--purple);color:var(--purple)}
+.n-out{background:var(--success-bg);border-color:var(--success);color:var(--success)}
+.math-block{background:var(--bg2);border-left:2px solid var(--border2);border-radius:0 6px 6px 0;padding:10px 14px;margin:6px 0;overflow-x:auto}
+.math-block .katex-display{margin:0;text-align:left}.math-block .katex-display>.katex{text-align:left}
+.eq-row{display:flex;align-items:baseline;gap:8px;margin:4px 0;flex-wrap:wrap}
+.eq-label{font-size:10px;color:var(--text3);min-width:80px;font-family:monospace}
+.eq-result{font-size:12px;font-weight:600;color:var(--warn);font-family:monospace;padding:2px 8px;background:var(--warn-bg);border-radius:4px}
+.eq-result-good{color:var(--success);background:var(--success-bg)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 2.2</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 5 — MLP Backpropagation</span>
+</div>
+<h1>Exercise 5 — MLP Backpropagation</h1>
+<p class="subtitle">1 hidden layer · sigmoid activations · 22 training vectors · 8 test vectors · default 50 iterations · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>Hidden neurons:</label>
+  <input type="number" id="inpH" value="6" min="1" max="12" step="1">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.5" min="0.01" max="1" step="0.01">
+  <label>Iterations:</label>
+  <input type="number" id="inpI" value="50" min="1" max="500" step="1">
+  <button class="nav" style="font-size:11px;padding:4px 10px" onclick="rebuild()">↺ Rebuild</button>
+  <div class="arch" id="arch"></div>
+</div>
+
+<div class="nav">
+  <button id="bprev" disabled>← Prev</button>
+  <button id="bnext">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button id="breset" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button id="btest" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Test results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:rgba(29,200,140,0.4);border:1px solid rgba(29,200,140,0.7)"></span>y≥0.5 → +1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:rgba(220,80,40,0.4);border:1px solid rgba(220,80,40,0.7)"></span>y&lt;0.5 → −1
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+  </div>
+</div>
+
+<script src="/static/js/canvas.js"></script>
+<script src="/static/js/mlp_ui.js"></script>
+<script>
+var exData, PHASES = 3, nav, renderer, trainPts;
+
+function getConfig(){
+  return {
+    n_hidden: parseInt(document.getElementById('inpH').value) || 6,
+    alpha:    parseFloat(document.getElementById('inpA').value) || 0.5,
+    n_iters:  parseInt(document.getElementById('inpI').value) || 50,
+    seed:     30,
+  };
+}
+
+function buildArch(nH){
+  var el = document.getElementById('arch');
+  var h = '<span style="color:var(--text3)">Architecture:</span>';
+  h += '<span class="arch-node n-in">x₁</span><span class="arch-node n-in">x₂</span>';
+  h += '<span style="color:var(--text3)">→</span>';
+  for(var j=1;j<=nH;j++) h += '<span class="arch-node n-hid">h'+j+'</span>';
+  h += '<span style="color:var(--text3)">→</span><span class="arch-node n-out">y</span>';
+  el.innerHTML = h;
+}
+
+function rebuild(){
+  var cfg = getConfig();
+  buildArch(cfg.n_hidden);
+  var url = '/api/mlp?n_hidden='+cfg.n_hidden+'&alpha='+cfg.alpha+'&seed='+cfg.seed+'&n_iters='+cfg.n_iters;
+  document.getElementById('lp').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px">Loading…</div>';
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(data) {
+      exData = data;
+      renderer = new MLPCanvas(document.getElementById('cv'), data.config.canvas);
+      var seen = {}, pts = [];
+      data.steps.forEach(function(s){ if(!seen[s.pattern.n]){seen[s.pattern.n]=1;pts.push(s.pattern);} });
+      trainPts = pts.sort(function(a,b){return a.n-b.n;});
+      var TOTAL = data.steps.length * PHASES + 1;
+      if(nav){ nav.total = TOTAL; nav.goTo(0); return; }
+      nav = new NavController({
+        total: TOTAL,
+        onRender: function(cur){
+          var isLast = cur === nav.total - 1;
+          var si = Math.floor(cur / PHASES), ph = cur % PHASES;
+          if(isLast){
+            document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+            document.getElementById('lp').innerHTML   = buildMLPTestPanel(exData);
+            renderer.draw(exData.final_weights, null, trainPts, true, exData.steps[exData.steps.length-1].train_results, true);
+          } else {
+            var step = data.steps[si], phase = ph;
+            var pNames  = ['forward pass','output update','hidden update'];
+            var pBadges = ['b1','b2','b4'];
+            document.getElementById('slbl').innerHTML =
+              'Iter ' + step.iter + ' — Pat n=' + step.pattern.n +
+              ' (' + (step.pi+1) + '/22) <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+            document.getElementById('lp').innerHTML = buildMLPPanel(step, phase, trainPts);
+            var ws = phase === 0 ? step.weights_before : step.weights_after;
+            renderer.draw(ws, step.pi, trainPts, false, step.train_results, false);
+          }
+        }
+      });
+      nav.start();
+      window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function(){ nav.goTo(nav.cur); });
+    });
+}
+
+rebuild();
+</script>
+</body>
+</html>

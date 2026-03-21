@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adaline</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+.math-block{background:var(--bg2);border-left:2px solid var(--border2);border-radius:0 6px 6px 0;padding:10px 14px;margin:6px 0;overflow-x:auto}
+.math-inline .katex{font-size:1em}
+.math-block .katex-display{margin:0;text-align:left}.math-block .katex-display>.katex{text-align:left}
+.eq-row{display:flex;align-items:baseline;gap:8px;margin:4px 0;flex-wrap:wrap}
+.eq-label{font-size:10px;color:var(--text3);min-width:80px;font-family:monospace}
+.eq-result{font-size:12px;font-weight:600;color:var(--warn);font-family:monospace;padding:2px 8px;background:var(--warn-bg);border-radius:4px}
+.eq-result-good{color:var(--success);background:var(--success-bg)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 2</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 4 — Adaline</span>
+</div>
+<h1>Exercise 4 — Adaline (LMS / Widrow-Hoff)</h1>
+<p class="subtitle">22 training vectors · 3 iterations · 8 test vectors · α=0.01 · UFPR MNE 740</p>
+<div class="nav">
+  <button id="bprev" disabled>← Prev</button>
+  <button id="bnext">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button id="breset" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button id="btest" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Test results</button>
+</div>
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span><span class="ld" style="border-color:#6d28d9"></span>y*=0 (decision)</span>
+      <span>🟢 y*≥0 → +1 &nbsp; 🔴 y*&lt;0 → −1</span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+  </div>
+</div>
+
+<script src="/static/js/canvas.js"></script>
+<script src="/static/js/adaline_ui.js"></script>
+<script>
+var exData, PHASES = 3, nav, renderer, trainPts;
+
+fetch('/api/adaline')
+  .then(function(r){ return r.json(); })
+  .then(function(data) {
+    exData = data;
+    renderer = new AdalineCanvas(document.getElementById('cv'), data.config.canvas);
+
+    // Extract unique train points sorted by n
+    var seen = {}, pts = [];
+    data.steps.forEach(function(s){ if(!seen[s.pattern.n]){seen[s.pattern.n]=1;pts.push(s.pattern);} });
+    trainPts = pts.sort(function(a,b){return a.n-b.n;});
+
+    var TOTAL = data.steps.length * PHASES + 1;
+    nav = new NavController({
+      total: TOTAL,
+      onRender: function(cur) {
+        var isLast = cur === TOTAL - 1;
+        var si = Math.floor(cur / PHASES), ph = cur % PHASES;
+        if (isLast) {
+          document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+          document.getElementById('lp').innerHTML   = buildAdalineTestPanel(exData);
+          renderer.draw(null, 2, trainPts, exData.final_weights);
+        } else {
+          var step = data.steps[si], phase = ph;
+          var pNames  = ['compute y* & error','weight update','decision boundary'];
+          var pBadges = ['b1','b2','b4'];
+          document.getElementById('slbl').innerHTML =
+            'Iter ' + step.iter + ' — Pat n=' + step.pattern.n +
+            ' (' + (step.pi+1) + '/22) ' +
+            '<span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+          document.getElementById('lp').innerHTML = buildAdalinePanel(step, phase, trainPts);
+          renderer.draw(step, phase, trainPts, null);
+        }
+      }
+    });
+    nav.start();
+    window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function(){ nav.goTo(nav.cur); });
+  });
+</script>
+</body>
+</html>
