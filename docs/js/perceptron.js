@@ -1,4 +1,30 @@
 var EXERCISES = {
+  ex1: {
+    name: "Exercise 1 — OR Logic (Bipolar)",
+    delta: 0.5, alpha: 1.0, nIters: 2,
+    w0: {w1: 0.3, w2: 0.5, th: 0},
+    train: [
+      {n:1, x1: 1, x2: 1,  d: 1},
+      {n:2, x1: 1, x2:-1,  d: 1},
+      {n:3, x1:-1, x2: 1,  d: 1},
+      {n:4, x1:-1, x2:-1,  d:-1},
+    ],
+    test: [],
+    canvas: {x1min:-1.7, x1max:1.7, refX:[-1,1], ydefMin:-1.5, ydefMax:1.5},
+  },
+  ex2: {
+    name: "Exercise 2 — AND Logic (Bipolar)",
+    delta: 0.4, alpha: 1.0, nIters: 4,
+    w0: {w1: 0.9, w2: -0.7, th: 0},
+    train: [
+      {n:1, x1: 1, x2: 1,  d: 1},
+      {n:2, x1: 1, x2:-1,  d:-1},
+      {n:3, x1:-1, x2: 1,  d:-1},
+      {n:4, x1:-1, x2:-1,  d:-1},
+    ],
+    test: [],
+    canvas: {x1min:-1.7, x1max:1.7, refX:[-1,1], ydefMin:-1.5, ydefMax:1.5},
+  },
   ex4: {
     name: "Exercise 4 — Pattern Classification",
     delta: 0.2, alpha: 1.0, nIters: 3,
@@ -80,7 +106,7 @@ function buildSteps(exId){
   var cfg=EXERCISES[exId];
   var delta=cfg.delta, alpha=cfg.alpha;
   var train=cfg.train, test=cfg.test;
-  var w1=0,w2=0,th=0;
+  var w1=cfg.w0?cfg.w0.w1:0, w2=cfg.w0?cfg.w0.w2:0, th=cfg.w0?cfg.w0.th:0;
   var steps=[];
 
   for(var iter=1;iter<=cfg.nIters;iter++){

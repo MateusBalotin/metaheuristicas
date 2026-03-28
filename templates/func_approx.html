@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity 3 · Ex1 — Function Approximation</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:65px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+.btn-accent{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Activity 3</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 1 — Function Approximation</span>
+</div>
+<h1>Exercise 1 — MLP Function Approximation</h1>
+<p class="subtitle">13 training points · linear output · sigmoid hidden · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>Hidden neurons:</label>
+  <input type="number" id="inpH" value="6" min="2" max="12" step="1">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.1" min="0.001" max="1" step="0.001" style="width:72px">
+  <label>Iterations:</label>
+  <input type="number" id="inpI" value="500" min="1" max="5000" step="50">
+  <label>Seed:</label>
+  <input type="number" id="inpSeed" value="42" min="0" max="9999" step="1" style="width:72px">
+  <button class="nav btn-accent" style="font-size:11px;padding:4px 10px" onclick="rebuild()">↺ Rebuild</button>
+  <button class="nav" style="font-size:11px;padding:4px 10px" onclick="randomSeed()">🎲 New seed</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" disabled>← Prev</button>
+  <button id="bnext">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button id="breset" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button id="btest" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Final results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(29,158,117,0.88);border:1.5px solid #0F6E56"></span>
+        d (target)
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(186,117,23,0.85);border:1px solid #BA7517"></span>
+        y (network output)
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:24px;height:2px;background:#185FA5"></span>
+        learned curve
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+  </div>
+</div>
+
+<script src="/static/js/canvas.js"></script>
+<script src="/static/js/func_approx_ui.js"></script>
+<script>
+var exData, PHASES = 3, nav, renderer, trainPts;
+
+function getConfig() {
+  return {
+    n_hidden: parseInt(document.getElementById('inpH').value)    || 6,
+    alpha:    parseFloat(document.getElementById('inpA').value)  || 0.1,
+    n_iters:  parseInt(document.getElementById('inpI').value)    || 500,
+    seed:     parseInt(document.getElementById('inpSeed').value) || 42,
+  };
+}
+
+function randomSeed() {
+  document.getElementById('inpSeed').value = Math.floor(Math.random() * 9999);
+  rebuild();
+}
+
+function rebuild() {
+  var cfg = getConfig();
+  var url = '/api/func-approx?n_hidden=' + cfg.n_hidden + '&alpha=' + cfg.alpha +
+            '&n_iters=' + cfg.n_iters + '&seed=' + cfg.seed;
+  document.getElementById('lp').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px">Loading\u2026</div>';
+  fetch(url)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      exData = data;
+      renderer = new FuncApproxCanvas(document.getElementById('cv'), data.config.canvas);
+      trainPts = data.train;
+      var TOTAL = data.steps.length * PHASES + 1;
+
+      if (nav) { nav.total = TOTAL; nav.goTo(0); return; }
+
+      nav = new NavController({
+        total: TOTAL,
+        onRender: function(cur) {
+          var isLast = cur === nav.total - 1;
+          var si = Math.floor(cur / PHASES), ph = cur % PHASES;
+
+          if (isLast) {
+            document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+            document.getElementById('lp').innerHTML   = buildFuncApproxTestPanel(exData);
+            renderer.draw(exData.final_weights, null, trainPts, true);
+          } else {
+            var step   = data.steps[si], phase = ph;
+            var pNames  = ['forward pass', 'output update', 'hidden update'];
+            var pBadges = ['b1', 'b2', 'b4'];
+            document.getElementById('slbl').innerHTML =
+              'Iter ' + step.iter + ' — n=' + step.pattern.n +
+              ' (' + (step.pi + 1) + '/' + trainPts.length + ')' +
+              ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+            document.getElementById('lp').innerHTML = buildFuncApproxPanel(step, phase, trainPts);
+            var ws = phase === 0 ? step.weights_before : step.weights_after;
+            renderer.draw(ws, step.pi, trainPts, phase >= 2);
+          }
+        }
+      });
+
+      nav.start();
+      window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function() { nav.goTo(nav.cur); });
+    });
+}
+
+rebuild();
+</script>
+</body>
+</html>
