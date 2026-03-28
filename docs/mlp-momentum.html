@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity 3 · Ex2 — MLP with Momentum</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:65px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Activity 3</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 2 — MLP with Momentum</span>
+</div>
+<h1>Exercise 2 — MLP Backpropagation with Momentum</h1>
+<p class="subtitle">5 patterns · 3 hidden neurons · sigmoid · fixed initial weights · γ=0.6 · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>γ (momentum):</label>
+  <input type="number" id="inpG" value="0.6" min="0" max="0.99" step="0.05" style="width:72px">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+  <span style="color:var(--text3);font-size:11px">α=1 fixed · normally γ ∈ [0.5, 0.9]</span>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Final results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span><span class="ld" style="border-color:#0F6E56;background:rgba(29,158,117,0.3)"></span>Class A (d=1)</span>
+      <span><span class="ld" style="border-color:#993C1D;background:rgba(216,90,48,0.3)"></span>Class B (d=0)</span>
+      <span style="font-size:11px;color:var(--info)">■ momentum term</span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div class="offnote" id="cnote"></div>
+  </div>
+</div>
+
+<script src="js/mlp-momentum.js"></script>
+<script src="js/mlp-momentum-ui.js"></script>
+<script>
+var PHASES = 3, exData, TOTAL, cur = 0;
+var renderer = new mCanvasRenderer(document.getElementById('cv'));
+
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+function isEnd() { return cur === TOTAL - 1; }
+
+function rebuild() {
+  var gamma = parseFloat(document.getElementById('inpG').value) || 0.6;
+  exData = mBuildSteps(gamma);
+  TOTAL  = exData.steps.length * PHASES + 1;
+  cur    = 0; render();
+}
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+
+  if (isEnd()) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+    document.getElementById('lp').innerHTML   = mTestPanelHTML(exData);
+    renderer.draw(exData.finalWs, null, true, exData.steps[exData.steps.length-1].trainResults);
+    document.getElementById('cnote').textContent = 'Decision region — final iteration';
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    var pNames  = ['forward pass','output update','hidden update'];
+    var pBadges = ['b1','b2','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Iter '+step.iter+' — Pat '+(step.p.label||step.p.n)+' ('+(step.pi+1)+'/5) ' +
+      '<span class="badge '+pBadges[phase]+'">'+pNames[phase]+'</span>';
+    document.getElementById('lp').innerHTML = mBuildPanel(step, phase, exData.gamma);
+    var ws = phase === 0 ? step.wsBefore : step.wsAfter;
+    renderer.draw(ws, phase === 0 ? step.pi : null, false, step.trainResults);
+    document.getElementById('cnote').textContent = '';
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1); }
+  if (e.key==='ArrowLeft')  { e.preventDefault(); go(-1); }
+  if (e.key==='Home')       { e.preventDefault(); goTo(0); }
+  if (e.key==='End')        { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+
+rebuild();
+</script>
+</body>
+</html>
