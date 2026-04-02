@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity 5 · Ex2 — Self-Organizing Map</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:65px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Activity 5</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 2 — Self-Organizing Map</span>
+</div>
+<h1>Exercise 2 — Self-Organizing Map (2×3)</h1>
+<p class="subtitle">7 training patterns (A,F,K,R,S,1,2) · 5D input · 6 neurons (2×3 grid) · Euclidean distance · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.5" min="0.01" max="1" step="0.05" style="width:72px">
+  <label>Iterations:</label>
+  <input type="number" id="inpI" value="3" min="1" max="10" step="1" style="width:65px">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Final results</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(239,159,39,0.4);border:2px solid #EF9F27"></span>winner
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(29,158,117,0.25);border:2px solid #0F6E56"></span>neighbor
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">bars = weight magnitudes</span>
+    </div>
+    <canvas id="cv" width="420" height="360" style="width:420px;height:360px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+  </div>
+</div>
+
+<script src="js/som.js"></script>
+<script src="js/som-ui.js"></script>
+<script>
+var exData, TOTAL, cur = 0, renderer;
+var PHASES = 3;
+
+function totalSteps(data) { return data.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+
+  if (isLast) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+    document.getElementById('lp').innerHTML   = som_summaryPanel(exData);
+    renderer.draw(exData.final_weights, SOM_EX.positions, null, true, exData.test_results);
+    document.getElementById('cnote').textContent = 'Final map — bar heights = weight magnitudes';
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    var pNames  = ['present pattern','find winner','update weights'];
+    var pBadges = ['b1','b2','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Pattern <strong>' + step.pattern.label + '</strong>' +
+      ' (' + (step.pi+1) + '/' + exData.config.n_train + ')' +
+      ' iter ' + step.iter +
+      ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = som_buildPanel(step, phase, exData.config);
+    var ws = phase < 2 ? step.weights_before : step.weights_after;
+    renderer.draw(ws, SOM_EX.positions, phase >= 1 ? step : null, false, null);
+    document.getElementById('cnote').textContent = phase >= 1
+      ? 'Winner: n' + (step.winner+1) + ' at (' + step.winner_pos.join(',') + ')'
+      : '';
+  }
+}
+
+function rebuild() {
+  var alpha   = parseFloat(document.getElementById('inpA').value);
+  var n_iters = parseInt(  document.getElementById('inpI').value);
+  if (isNaN(alpha)   || alpha <= 0)   alpha   = 0.5;
+  if (isNaN(n_iters) || n_iters <= 0) n_iters = 3;
+  exData   = som_run(alpha, n_iters);
+  TOTAL    = totalSteps(exData);
+  renderer = new som_CanvasRenderer(document.getElementById('cv'));
+  cur      = 0; render();
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1); }
+  if (e.key==='ArrowLeft')  { e.preventDefault(); go(-1); }
+  if (e.key==='Home')       { e.preventDefault(); goTo(0); }
+  if (e.key==='End')        { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>
