@@ -6,6 +6,9 @@ from algorithms import adaline       as adaline_algo
 from algorithms import mlp           as mlp_algo
 from algorithms import mlp_momentum as mlp_momentum_algo
 from algorithms import func_approx  as func_approx_algo
+from algorithms import rbf          as rbf_algo
+from algorithms import hebb         as hebb_algo
+from algorithms import som          as som_algo
 
 app = Flask(__name__)
 
@@ -34,6 +37,22 @@ def page_mlp_momentum():
 @app.route("/func-approx")
 def page_func_approx():
     return render_template("func_approx.html")
+
+@app.route("/rbf")
+def page_rbf():
+    return render_template("rbf.html")
+
+@app.route("/rbf-cls")
+def page_rbf_cls():
+    return render_template("rbf_cls.html")
+
+@app.route("/hebb")
+def page_hebb():
+    return render_template("hebb.html")
+
+@app.route("/som")
+def page_som():
+    return render_template("som.html")
 
 @app.route("/api/perceptron/<ex>")
 def api_perceptron(ex: str):
@@ -72,6 +91,30 @@ def api_func_approx():
     n_iters  = int(  request.args.get("n_iters",  500))
     seed     = int(  request.args.get("seed",     42))
     return jsonify(func_approx_algo.run(n_hidden=n_hidden, alpha=alpha, n_iters=n_iters, seed=seed))
+
+@app.route("/api/rbf")
+def api_rbf():
+    q     = int(  request.args.get("q",     4))
+    sigma = float(request.args.get("sigma", 1.5))
+    seed  = int(  request.args.get("seed",  42))
+    return jsonify(rbf_algo.run(q=q, sigma=sigma, seed=seed))
+
+@app.route("/api/rbf-cls")
+def api_rbf_cls():
+    sigma = float(request.args.get("sigma", 5.0))
+    return jsonify(rbf_algo.run_classification(sigma=sigma))
+
+@app.route("/api/hebb")
+def api_hebb():
+    alpha   = float(request.args.get("alpha",   1.0))
+    n_iters = int(  request.args.get("n_iters", 1))
+    return jsonify(hebb_algo.run(alpha=alpha, n_iters=n_iters))
+
+@app.route("/api/som")
+def api_som():
+    alpha   = float(request.args.get("alpha",   0.5))
+    n_iters = int(  request.args.get("n_iters", 3))
+    return jsonify(som_algo.run(alpha_init=alpha, n_iters=n_iters))
 
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:5000")).start()

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity 4 · Ex6 — RBF Classification</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Activity 4</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 6 — RBF Classification</span>
+</div>
+<h1>Exercise 6 — RBF Classification (22 points)</h1>
+<p class="subtitle">22 training · 8 test · q=3 fixed centers · σ=5 · θ=1 · y≥0→+1 · w=(G<sup>T</sup>G)<sup>-1</sup>G<sup>T</sup>d · UFPR MNE 740</p>
+
+<div style="padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+  <span style="font-family:monospace;color:var(--text3)">Fixed centers: <strong style="color:var(--text)">u₁=(1,3) · u₂=(4,0) · u₃=(5,3)</strong></span>
+  <label style="color:var(--text3);font-size:12px">σ:</label>
+  <input type="number" id="inpSigma" value="5" min="0.1" max="20" step="0.1"
+    style="width:72px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+  <span style="color:var(--text3);font-size:11px">try σ=0.8 for curved regions · σ=5 is the apostila default</span>
+</div>
+
+<div class="nav">
+  <button id="bprev" disabled>← Prev</button>
+  <button id="bnext">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button id="breset" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button id="btest"  style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Final results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(29,158,117,0.88);border:1.5px solid #0F6E56"></span>d=+1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(216,90,48,0.88);border:1.5px solid #993C1D"></span>d=−1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--info)">
+        ◯ centers u_j
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+  </div>
+</div>
+
+<script src="/static/js/canvas.js"></script>
+<script src="/static/js/rbf_ui.js"></script>
+<script>
+var exData, nav, renderer;
+
+function totalSteps(data) { return data.train.length + 4; }
+
+function render(cur) {
+  var n = exData.train.length;
+  if (cur < n) {
+    document.getElementById('slbl').innerHTML =
+      'Build G \u2014 row '+(cur+1)+'/'+n+' <span class="badge b1">\u03c6 computations</span>';
+    document.getElementById('lp').innerHTML = buildRbfClsGRowPanel(exData, cur);
+    renderer.draw(exData, cur, false);
+  } else if (cur === n) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b2">G\u1D40G matrix</span>';
+    document.getElementById('lp').innerHTML = buildRbfClsGTGPanel(exData);
+    renderer.draw(exData, null, false);
+  } else if (cur === n+1) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b3">G\u1D40d vector</span>';
+    document.getElementById('lp').innerHTML = buildRbfClsGTdPanel(exData);
+    renderer.draw(exData, null, false);
+  } else if (cur === n+2) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b4">Solve for w</span>';
+    document.getElementById('lp').innerHTML = buildRbfClsSolvePanel(exData);
+    renderer.draw(exData, null, true);
+  } else {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+    document.getElementById('lp').innerHTML = buildRbfClsSummaryPanel(exData);
+    renderer.draw(exData, null, true);
+  }
+}
+
+function rebuild() {
+  var sigma = parseFloat(document.getElementById('inpSigma').value) || 5;
+  document.getElementById('lp').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:20px">Loading…</div>';
+  fetch('/api/rbf-cls?sigma=' + sigma)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      exData   = data;
+      renderer = new RbfClsCanvas(document.getElementById('cv'), data.config.canvas);
+      var TOTAL = totalSteps(data);
+      if (nav) { nav.total = TOTAL; nav.goTo(0); return; }
+      nav = new NavController({
+        total: TOTAL,
+        onRender: function(cur) { render(cur); }
+      });
+      nav.start();
+      window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', function() { nav.goTo(nav.cur); });
+    });
+}
+
+rebuild();
+</script>
+</body>
+</html>

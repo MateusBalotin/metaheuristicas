@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity 5 · Ex4 — Hebb Network</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:65px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Activity 5</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 4 — Hebb Network</span>
+</div>
+<h1>Exercise 4 — Hebb Network (22 points)</h1>
+<p class="subtitle">22 training · 8 test · inputs normalized to [−1,1] · Δw = α·x̂·d · always updates · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>α:</label>
+  <input type="number" id="inpA" value="1" min="0.01" max="2" step="0.01" style="width:72px">
+  <label>Iterations:</label>
+  <input type="number" id="inpI" value="3" min="1" max="20" step="1" style="width:65px">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Final results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(29,158,117,0.88);border:1.5px solid #0F6E56"></span>d=+1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(216,90,48,0.88);border:1.5px solid #993C1D"></span>d=−1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:20px;height:1.5px;border-top:2px dashed #6d28d9"></span>boundary
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="560" style="width:420px;height:560px;border-radius:6px;display:block"></canvas>
+    <div class="offnote" id="cnote"></div>
+  </div>
+</div>
+
+<script src="js/hebb.js"></script>
+<script src="js/hebb-ui.js"></script>
+<script>
+var exData, TOTAL, cur = 0, renderer;
+var PHASES = 3;
+
+function totalSteps(data) { return data.steps.length * PHASES + 1; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var n = exData.steps.length;
+  var isLast = cur === TOTAL - 1;
+  var si = Math.floor(cur / PHASES), ph = cur % PHASES;
+
+  if (isLast) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+    document.getElementById('lp').innerHTML   = hb_summaryPanel(exData);
+    var fw = exData.final_weights;
+    renderer.draw(fw, null, HEBB_EX.train, true, exData.steps[n-1].train_results, true);
+    document.getElementById('cnote').textContent = 'Decision boundary — final weights';
+  } else {
+    var step = exData.steps[si], phase = ph;
+    var pNames  = ['normalize','compute y*','update w'];
+    var pBadges = ['b1','b2','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Pattern n='+step.pattern.n+' ('+(step.pi+1)+'/22) iter '+step.iter+
+      ' <span class="badge '+pBadges[phase]+'">'+pNames[phase]+'</span>';
+    document.getElementById('lp').innerHTML = hb_buildPanel(step, phase);
+    var ws = phase < 2 ? step.weights_before : step.weights_after;
+    renderer.draw(ws, step.pi, HEBB_EX.train, false, step.train_results, phase >= 2);
+    document.getElementById('cnote').textContent = phase >= 2 ? 'Boundary updates after this step' : '';
+  }
+}
+
+function rebuild() {
+  var alpha   = parseFloat(document.getElementById('inpA').value) || 1;
+  var n_iters = parseInt(  document.getElementById('inpI').value) || 1;
+  exData   = hb_run(alpha, n_iters);
+  TOTAL    = totalSteps(exData);
+  renderer = new hb_CanvasRenderer(document.getElementById('cv'));
+  cur      = 0; render();
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1); }
+  if (e.key==='ArrowLeft')  { e.preventDefault(); go(-1); }
+  if (e.key==='Home')       { e.preventDefault(); goTo(0); }
+  if (e.key==='End')        { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+
+rebuild();
+</script>
+</body>
+</html>

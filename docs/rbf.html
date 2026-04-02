@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activity 4 · Ex5 — RBF Function Approximation</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:65px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Activity 4</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercise 5 — RBF Network</span>
+</div>
+<h1>Exercise 5 — RBF: sin(x) + 4cos(x) − 1</h1>
+<p class="subtitle">21 points · [-2, 4] · 4 Gaussian centers · w = (G<sup>T</sup>G)<sup>-1</sup>G<sup>T</sup>d · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>Centers q:</label>
+  <input type="number" id="inpQ" value="4" min="1" max="10" step="1" style="width:55px">
+  <label>σ:</label>
+  <input type="number" id="inpS" value="1.5" min="0.1" max="5" step="0.1" style="width:65px">
+  <label>Seed:</label>
+  <input type="number" id="inpSeed" value="42" min="0" max="9999" step="1" style="width:72px">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+  <button onclick="document.getElementById('inpSeed').value=Math.floor(Math.random()*9999);rebuild();" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--border2);background:var(--bg);color:var(--text)">🎲 Seed</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Final results</button>
+</div>
+
+<div class="split">
+  <div id="lp"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(29,158,117,0.88);border:1.5px solid #0F6E56"></span>d (target)
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:rgba(186,117,23,0.85);border:1px solid #BA7517"></span>y (RBF output)
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px">
+        <span style="display:inline-block;width:20px;height:2px;background:#185FA5"></span>learned curve
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--info)">
+        <span style="display:inline-block;width:14px;height:1px;border-top:1.5px dashed #185FA5"></span> centers
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div class="offnote" id="cnote"></div>
+  </div>
+</div>
+
+<script src="js/rbf.js"></script>
+<script src="js/rbf-ui.js"></script>
+<script>
+var exData, TOTAL, cur = 0;
+var renderer;
+
+function totalSteps(data) { return data.train.length + 4; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var n = exData.train.length;
+
+  if (cur < n) {
+    document.getElementById('slbl').innerHTML =
+      'Build G \u2014 row ' + (cur + 1) + '/' + n +
+      ' <span class="badge b1">\u03c6 computations</span>';
+    document.getElementById('lp').innerHTML = rbf_rowPanel(exData, cur);
+    renderer.draw(exData, cur, false);
+    document.getElementById('cnote').textContent = '';
+  } else if (cur === n) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b2">G\u1D40G matrix</span>';
+    document.getElementById('lp').innerHTML = rbf_gtgPanel(exData);
+    renderer.draw(exData, null, false);
+    document.getElementById('cnote').textContent = '';
+  } else if (cur === n + 1) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b3">G\u1D40d vector</span>';
+    document.getElementById('lp').innerHTML = rbf_gtdPanel(exData);
+    renderer.draw(exData, null, false);
+    document.getElementById('cnote').textContent = '';
+  } else if (cur === n + 2) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b4">Solve for w</span>';
+    document.getElementById('lp').innerHTML = rbf_solvePanel(exData);
+    renderer.draw(exData, null, true);
+    document.getElementById('cnote').textContent = 'Learned curve appears after solving for w';
+  } else {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Summary</span>';
+    document.getElementById('lp').innerHTML = rbf_summaryPanel(exData);
+    renderer.draw(exData, null, true);
+    document.getElementById('cnote').textContent = 'Final approximation curve';
+  }
+}
+
+function rebuild() {
+  var q     = parseInt(  document.getElementById('inpQ').value)    || 4;
+  var sigma = parseFloat(document.getElementById('inpS').value)    || 1.5;
+  var seed  = parseInt(  document.getElementById('inpSeed').value) || 42;
+  exData   = rbf_run(q, sigma, seed);
+  TOTAL    = totalSteps(exData);
+  renderer = new rbf_CanvasRenderer(document.getElementById('cv'));
+  cur      = 0; render();
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL - 1, cur + d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); go(-1); }
+  if (e.key === 'Home')       { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')        { e.preventDefault(); goTo(TOTAL - 1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+
+rebuild();
+</script>
+</body>
+</html>
