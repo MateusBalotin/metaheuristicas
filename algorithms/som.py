@@ -26,9 +26,7 @@ def _neighborhood(winner: int, radius: int, positions: list) -> list:
 
 
 def _radius_for_iter(iteration: int, n_iters: int) -> int:
-    """Decrease radius: start at 1, drop to 0 after halfway."""
-    if iteration <= n_iters // 2:
-        return 1
+    """Winner-only: radius always 0."""
     return 0
 
 

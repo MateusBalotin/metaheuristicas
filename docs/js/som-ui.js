@@ -34,7 +34,7 @@ function som_buildPanel(step, phase, config) {
         '<td style="padding:3px 6px">'+(isWin?'\u2190 winner \ud83c\udfc6':'')+'</td></tr>';
     }
     html+='</tbody></table>';
-    html+='<div style="margin-top:8px;font-family:monospace;font-size:11px;color:var(--text3)">Neighborhood (radius='+step.radius+'): '+step.neighbors.map(function(n){return 'n'+(n+1);}).join(', ')+'</div></div>';
+    html+='</div>';
 
   } else {
     html+='<div class="card"><div class="ct">Step 3 \u2014 Update winner + neighbors</div>';

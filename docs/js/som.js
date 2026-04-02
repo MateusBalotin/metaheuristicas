@@ -50,7 +50,7 @@ function som_neighborhood(winner, radius) {
 }
 
 function som_radiusForIter(iter, n_iters) {
-  return iter <= Math.floor(n_iters/2) ? 1 : 0;
+  return 0; // winner only
 }
 
 function som_alphaForIter(alpha0, iter) {
