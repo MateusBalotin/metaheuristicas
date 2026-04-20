@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 7.2 — RBF Série Temporal (entradas t)</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<style>
+.alg-box{border:0.5px solid var(--border3);border-radius:8px;padding:12px 16px;background:var(--bg2);font-size:12px;line-height:2.2;font-family:monospace;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 7</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Atividade 7.2 — RBF com entradas t</span>
+</div>
+
+<h1>Atividade 7.2 — RBF para Série Temporal (entradas t)</h1>
+<p class="subtitle">Exercício 8 · σ=1 · θ=1 · u={[1,2],[4,5],[7,8]} · k=2 · 3 centros · entradas = índices de tempo t · UFPR MNE 740</p>
+
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Diferença entre 7.1 e 7.2 — e algoritmo</summary>
+  <div style="font-size:11px;color:var(--text3);line-height:1.9;padding:10px 14px;background:var(--bg2);border-radius:8px;border:0.5px solid var(--border3);margin-top:8px;margin-bottom:8px">
+    <strong style="color:var(--text2)">Atividade 7.1 (Exercício 7):</strong> entradas = <strong>valores y</strong> da série →  x = [y_t, y_{t+1}]<br>
+    <strong style="color:var(--text2)">Atividade 7.2 (Exercício 8):</strong> entradas = <strong>índices de tempo t</strong> →  x = [t, t+1]<br>
+    As Gaussianas operam em espaços completamente diferentes.
+  </div>
+  <div class="alg-box">
+    <strong>Série temporal:</strong> y = [1, 0.9, 0.75, 0.6, 0.55, 0.6, 0.4, 0.3, 0.2, 0.05]<br>
+    <strong>Padrões (k=2):</strong> x = [t, t+1], d = y[t+2] &nbsp;(8 padrões, t=1..8)<br>
+    <strong>Centros (t-espaço):</strong> u₁=[1,2] · u₂=[4,5] · u₃=[7,8]<br>
+    <strong>Ativação:</strong> φⱼ(t) = exp( −||t − uⱼ||² / (2σ²) )<br>
+    <strong>G (8×4):</strong> G[i,j]=φⱼ(tᵢ), G[i,4]=θ=1<br>
+    <strong>Solução:</strong> w = (G<sup>T</sup>G)<sup>−1</sup>G<sup>T</sup>d &nbsp;(sistema 4×4)<br>
+    <strong>Saída:</strong> ŷ = w₁φ₁(t) + w₂φ₂(t) + w₃φ₃(t) + w₀θ
+  </div>
+</details>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Resultado final</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF9F27"></span>u₁=[1,2]
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4a9eff"></span>u₂=[4,5]
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#5DCAA5"></span>u₃=[7,8]
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(30,150,80,0.9);border:1.5px solid #0F6E56"></span>padrão atual
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="380" style="width:420px;height:380px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+    <div id="errmsg" style="color:red;font-size:11px;margin-top:6px"></div>
+  </div>
+</div>
+
+<script src="/static/js/rbf_temporal_t_ui.js"></script>
+<script>
+var exData, TOTAL = 1, cur = 0, renderer;
+var PHASES = 3;
+
+function totalSteps(data) { return data.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+  try {
+    if (isLast) {
+      document.getElementById('slbl').innerHTML = '<span class="badge b1">Resultado Final</span>';
+      document.getElementById('lp').innerHTML   = buildRbfTSolvePanel(exData);
+      renderer.drawTimeSeries(exData);
+      document.getElementById('cnote').textContent =
+        'Série temporal com predições · MSE = ' + exData.mse.toFixed(6);
+    } else {
+      var step  = exData.steps[si()];
+      var phase = ph();
+      var pNames  = ['apresentar padrão t', 'calcular φ(t)', 'adicionar a G'];
+      var pBadges = ['b1','b2','b4'];
+      document.getElementById('slbl').innerHTML =
+        'Padrão <strong>P' + (step.pi+1) + '</strong> t=[' + step.x[0] + ',' + step.x[1] + ']' +
+        ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+      document.getElementById('lp').innerHTML = buildRbfTPanel(step, phase, exData.config);
+      renderer.drawInputSpace(exData, step, phase);
+      document.getElementById('cnote').textContent = phase >= 1
+        ? 'φ₁=' + step.phis[0].toFixed(4) + '  φ₂=' + step.phis[1].toFixed(4) + '  φ₃=' + step.phis[2].toFixed(4)
+        : 't=[' + step.x[0] + ',' + step.x[1] + ']  y_in=[' + step.y_in[0] + ',' + step.y_in[1] + ']  d=' + step.d;
+    }
+  } catch(e) {
+    document.getElementById('errmsg').textContent = 'Render error: ' + e.message;
+    console.error(e);
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+fetch('/api/rbf-temporal-t')
+  .then(function(r) { if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+  .then(function(data) {
+    exData   = data;
+    renderer = new RbfTsCanvas_T(document.getElementById('cv'));
+    TOTAL    = totalSteps(data);
+    cur      = 0;
+    render();
+  })
+  .catch(function(err) {
+    document.getElementById('errmsg').textContent = 'Error: ' + err.message;
+  });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1);  }
+  if (e.key==='ArrowLeft')               { e.preventDefault(); go(-1); }
+  if (e.key==='Home')                    { e.preventDefault(); goTo(0); }
+  if (e.key==='End')                     { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+</script>
+</body>
+</html>

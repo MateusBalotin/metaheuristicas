@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 6.1 — SOM para TSP (Burma14)</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:62px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+.alg-box{border:0.5px solid var(--border3);border-radius:8px;padding:12px 16px;background:var(--bg2);font-size:12px;line-height:2.2;font-family:monospace;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ──────────────────────────────────────────────────────────────── -->
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 6</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Atividade 6.1 — SOM para TSP</span>
+</div>
+
+<h1>Atividade 6.1 — SOM para o Problema do Caixeiro Viajante</h1>
+<p class="subtitle">Burma14 (TSPLIB) · 14 cidades · anel de neurônios · topologia ring · distância Euclidiana · UFPR MNE 740</p>
+
+<!-- ── Algorithm summary ──────────────────────────────────────────────────── -->
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Algoritmo — SOM para TSP com topologia em anel</summary>
+  <div class="alg-box" style="margin-top:8px">
+    <strong>Inicialização:</strong><br>
+    &nbsp;&nbsp;N neurônios posicionados em elipse em torno do centróide das cidades<br>
+    &nbsp;&nbsp;w<sub>i</sub> = [c<sub>x</sub> + r<sub>x</sub>·cos(2πi/N), &nbsp;c<sub>y</sub> + r<sub>y</sub>·sin(2πi/N)]<br>
+    <strong>Para cada iteração e cada cidade x:</strong><br>
+    &nbsp;&nbsp;1. Encontrar BMU: &nbsp;i* = argmin<sub>i</sub> d(x, w<sub>i</sub>)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d(x, w<sub>i</sub>) = √[(x₁−w<sub>i1</sub>)² + (x₂−w<sub>i2</sub>)²]<br>
+    &nbsp;&nbsp;2. Definir vizinhança: &nbsp;V = { i : dist_anel(i, i*) ≤ raio }<br>
+    &nbsp;&nbsp;3. Atualizar: &nbsp;w<sub>i</sub> ← w<sub>i</sub> + α · (x − w<sub>i</sub>) &nbsp;∀ i ∈ V<br>
+    <strong>Decaimento:</strong><br>
+    &nbsp;&nbsp;α<sub>t</sub> = α₀ · 0.5<sup>t−1</sup> &nbsp;&nbsp; raio<sub>t</sub> = raio₀ · (1 − (t−1)/(T−1))<br>
+    <strong>Rota:</strong> cidades ordenadas pelo índice do BMU no anel
+  </div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.8;margin-bottom:8px">
+    • N &gt; 14 neurônios garantem que cidades diferentes possam ser mapeadas a neurônios diferentes<br>
+    • Topologia em anel: dist_anel(i,j) = min(|i−j|, N−|i−j|)<br>
+    • Canvas mostra mapa 2D: • cidades (azul) &nbsp;· ◯ neurônios conectados (anel laranja) &nbsp;· ---- rota final (verde)
+  </div>
+</details>
+
+<!-- ── Config bar ──────────────────────────────────────────────────────────── -->
+<div class="cfg-bar">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.5" min="0.05" max="1" step="0.05" style="width:68px">
+  <label>Iterações:</label>
+  <input type="number" id="inpI" value="3"   min="1" max="10" step="1">
+  <label>Neurônios:</label>
+  <input type="number" id="inpN" value="20"  min="15" max="40" step="1">
+  <label>Raio₀:</label>
+  <input type="number" id="inpR" value="3"   min="0" max="10" step="1">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<!-- ── Navigation ─────────────────────────────────────────────────────────── -->
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Resultado final</button>
+</div>
+
+<!-- ── Split layout ───────────────────────────────────────────────────────── -->
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4a7090;border:1.5px solid #4a7090"></span>cidades
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(239,159,39,0.4);border:2px solid #EF9F27"></span>BMU
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:rgba(29,158,117,0.4);border:2px solid #0F6E56"></span>vizinhos
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">anel = neurônios</span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+  </div>
+</div>
+
+<script src="js/som-ativ6.js"></script>
+<script>
+var exData, TOTAL, cur = 0, renderer;
+var PHASES = 3;
+
+function totalSteps(data) { return data.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+
+  if (isLast) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Resultado Final</span>';
+    document.getElementById('lp').innerHTML   = tsp_summaryPanel(exData);
+    renderer.draw(exData.final_weights, null, true, exData.final_mapping);
+    document.getElementById('cnote').textContent =
+      'Mapa final — rota ≈ ' + exData.tour_dist + ' unidades · ' +
+      exData.config.n_neurons + ' neurônios no anel';
+  } else {
+    var step   = exData.steps[si()];
+    var phase  = ph();
+    var pNames  = ['apresentar cidade', 'encontrar BMU', 'atualizar pesos'];
+    var pBadges = ['b1', 'b2', 'b4'];
+
+    document.getElementById('slbl').innerHTML =
+      'Cidade <strong>' + step.city.label + '</strong>' +
+      ' (' + (step.pi + 1) + '/' + exData.config.nc + ')' +
+      ' iter ' + step.iter +
+      ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+
+    document.getElementById('lp').innerHTML = tsp_buildPanel(step, phase, exData.config);
+
+    var ws = phase < 2 ? step.weights_before : step.weights_after;
+    renderer.draw(ws, phase >= 1 ? step : null, false, null);
+
+    document.getElementById('cnote').textContent = phase >= 1
+      ? 'BMU: n' + (step.winner + 1) + '  ·  vizinhos: ' +
+        step.neighbors.map(function(n){ return 'n'+(n+1); }).join(', ')
+      : 'Cidade ' + step.city.label + ' = [' + step.city.x + ', ' + step.city.y + ']';
+  }
+}
+
+function rebuild() {
+  var alpha     = parseFloat(document.getElementById('inpA').value);
+  var n_iters   = parseInt(  document.getElementById('inpI').value);
+  var n_neurons = parseInt(  document.getElementById('inpN').value);
+  var radius0   = parseInt(  document.getElementById('inpR').value);
+  if (isNaN(alpha)     || alpha     <= 0) alpha     = 0.5;
+  if (isNaN(n_iters)   || n_iters   <= 0) n_iters   = 3;
+  if (isNaN(n_neurons) || n_neurons < 15) n_neurons = 20;
+  if (isNaN(radius0)   || radius0   <  0) radius0   = 3;
+
+  exData   = tsp_run(alpha, n_iters, n_neurons, radius0);
+  TOTAL    = totalSteps(exData);
+  renderer = new TSP_CanvasRenderer(document.getElementById('cv'));
+  cur      = 0;
+  render();
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL - 1, cur + d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1);  }
+  if (e.key === 'ArrowLeft')                   { e.preventDefault(); go(-1); }
+  if (e.key === 'Home')                        { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')                         { e.preventDefault(); goTo(TOTAL - 1); }
+});
+
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>

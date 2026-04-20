@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exercício 7 — RBF Série Temporal</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<style>
+.alg-box{border:0.5px solid var(--border3);border-radius:8px;padding:12px 16px;background:var(--bg2);font-size:12px;line-height:2.2;font-family:monospace;margin-bottom:8px}
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 7</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Exercício 7 — RBF Série Temporal</span>
+</div>
+
+<h1>Exercício 7 — RBF para Série Temporal</h1>
+<p class="subtitle">σ=1 · α=1 · u={(1,0.9),(0.6,0.4)} · k=2 · θ=1 · 8 padrões · saída com 1 neurônio · UFPR MNE 740</p>
+
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Algoritmo — RBF com pesos por mínimos quadrados</summary>
+  <div class="alg-box" style="margin-top:8px">
+    <strong>Série temporal:</strong> y = [1, 0.9, 0.75, 0.6, 0.55, 0.6, 0.4, 0.3, 0.2, 0.05]<br>
+    <strong>Janela:</strong> k=2 → x = [y(t), y(t+1)], d = y(t+2) &nbsp;(8 padrões)<br>
+    <strong>Ativação RBF (Gaussiana):</strong><br>
+    &nbsp;&nbsp;φⱼ(x) = exp( −||x−uⱼ||² / (2σ²) ) = exp( −||x−uⱼ||² / 2 )<br>
+    <strong>Matriz G (8×3):</strong> G[i,j] = φⱼ(xᵢ), &nbsp;G[i,3] = θ = 1<br>
+    <strong>Solução por mínimos quadrados:</strong><br>
+    &nbsp;&nbsp;w = (G<sup>T</sup>G)<sup>−1</sup> G<sup>T</sup>d<br>
+    <strong>Saída:</strong> ŷ = w₁·φ₁(x) + w₂·φ₂(x) + w₀·θ
+  </div>
+  <div style="font-size:11px;color:var(--text3);line-height:1.8;margin-bottom:8px">
+    • Centros fixos: u₁=(1.0, 0.9) e u₂=(0.6, 0.4)<br>
+    • Pesos w calculados em batch (não online) via pseudo-inversa<br>
+    • Canvas esquerdo: espaço 2D de entrada com padrões e centros<br>
+    • Canvas direito (final): predições sobre a série temporal original
+  </div>
+</details>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Resultado final</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF9F27;border:1.5px solid #c97d10"></span>u₁=(1.0,0.9)
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4a9eff;border:1.5px solid #1a6fd4"></span>u₂=(0.6,0.4)
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#5DCAA5;border:1.5px solid #0F6E56"></span>padrão atual
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="380" style="width:420px;height:380px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+    <div id="errmsg" style="color:red;font-size:11px;margin-top:6px"></div>
+  </div>
+</div>
+
+<script src="/static/js/rbf_temporal_ui.js"></script>
+<script>
+var exData, TOTAL = 1, cur = 0, renderer;
+var PHASES = 3;
+
+function totalSteps(data) { return data.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+
+  try {
+    if (isLast) {
+      document.getElementById('slbl').innerHTML = '<span class="badge b1">Resultado Final</span>';
+      document.getElementById('lp').innerHTML   = buildRbfTsSolvePanel(exData);
+      renderer.drawTimeSeries(exData);
+      document.getElementById('cnote').textContent =
+        'Série temporal com predições · MSE = ' + exData.mse.toFixed(6);
+    } else {
+      var step  = exData.steps[si()];
+      var phase = ph();
+      var pNames  = ['apresentar padrão', 'calcular φ', 'adicionar a G'];
+      var pBadges = ['b1', 'b2', 'b4'];
+      document.getElementById('slbl').innerHTML =
+        'Padrão <strong>P' + (step.pi+1) + '</strong>' +
+        ' (t=' + step.t + ')' +
+        ' x=[' + step.x[0] + ',' + step.x[1] + ']' +
+        ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+      document.getElementById('lp').innerHTML = buildRbfTsPanel(step, phase, exData.config);
+      renderer.drawInputSpace(exData, step, phase);
+      document.getElementById('cnote').textContent =
+        phase >= 1
+          ? 'φ₁=' + step.phis[0].toFixed(4) + '  φ₂=' + step.phis[1].toFixed(4)
+          : 'x=[' + step.x[0] + ', ' + step.x[1] + ']  d=' + step.d;
+    }
+  } catch(e) {
+    document.getElementById('errmsg').textContent = 'Render error: ' + e.message;
+    console.error(e);
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+fetch('/api/rbf-temporal')
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  })
+  .then(function(data) {
+    exData   = data;
+    renderer = new RbfTsCanvas(document.getElementById('cv'));
+    TOTAL    = totalSteps(data);
+    cur      = 0;
+    render();
+  })
+  .catch(function(err) {
+    document.getElementById('errmsg').textContent = 'Error: ' + err.message;
+    console.error('RBF-TS fetch error:', err);
+  });
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1);  }
+  if (e.key === 'ArrowLeft')                   { e.preventDefault(); go(-1); }
+  if (e.key === 'Home')                        { e.preventDefault(); goTo(0); }
+  if (e.key === 'End')                         { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+</script>
+</body>
+</html>

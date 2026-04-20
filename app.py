@@ -9,6 +9,10 @@ from algorithms import func_approx  as func_approx_algo
 from algorithms import rbf          as rbf_algo
 from algorithms import hebb         as hebb_algo
 from algorithms import som          as som_algo
+from algorithms import som_tsp      as som_tsp_algo
+from algorithms import lvq          as lvq_algo
+from algorithms import rbf_temporal as rbf_temporal_algo
+from algorithms import rbf_temporal_t as rbf_temporal_t_algo
 
 app = Flask(__name__)
 
@@ -53,6 +57,22 @@ def page_hebb():
 @app.route("/som")
 def page_som():
     return render_template("som.html")
+
+@app.route("/som-tsp")
+def page_som_tsp():
+    return render_template("som_tsp.html")
+
+@app.route("/lvq")
+def page_lvq():
+    return render_template("lvq.html")
+
+@app.route("/rbf-temporal")
+def page_rbf_temporal():
+    return render_template("rbf_temporal.html")
+
+@app.route("/rbf-temporal-t")
+def page_rbf_temporal_t():
+    return render_template("rbf_temporal_t.html")
 
 @app.route("/api/perceptron/<ex>")
 def api_perceptron(ex: str):
@@ -115,6 +135,30 @@ def api_som():
     alpha   = float(request.args.get("alpha",   0.5))
     n_iters = int(  request.args.get("n_iters", 3))
     return jsonify(som_algo.run(alpha_init=alpha, n_iters=n_iters))
+
+@app.route("/api/som-tsp")
+def api_som_tsp():
+    alpha     = float(request.args.get("alpha",     0.5))
+    n_iters   = int(  request.args.get("n_iters",   3))
+    n_neurons = int(  request.args.get("n_neurons", 20))
+    radius0   = int(  request.args.get("radius0",   3))
+    return jsonify(som_tsp_algo.run(
+        alpha=alpha, n_iters=n_iters,
+        n_neurons=n_neurons, radius0=radius0,
+    ))
+
+@app.route("/api/lvq")
+def api_lvq():
+    alpha = float(request.args.get("alpha", 0.5))
+    return jsonify(lvq_algo.run(alpha=alpha))
+
+@app.route("/api/rbf-temporal")
+def api_rbf_temporal():
+    return jsonify(rbf_temporal_algo.run())
+
+@app.route("/api/rbf-temporal-t")
+def api_rbf_temporal_t():
+    return jsonify(rbf_temporal_t_algo.run())
 
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:5000")).start()

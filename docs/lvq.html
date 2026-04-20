@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 6.2 — LVQ</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:68px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 6</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Atividade 6.2 — LVQ</span>
+</div>
+<h1>Atividade 6.2 — Learning Vector Quantization (LVQ)</h1>
+<p class="subtitle">4 classes (C1–C4) · 16 neurônios (4×4 grid) · 5 vetores de treino · distância Euclidiana · UFPR MNE 740</p>
+
+<div class="cfg-bar">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.5" min="0.01" max="1" step="0.05">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Resultado final</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4a9eff"></span>C1</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF9F27"></span>C2</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#5DCAA5"></span>C3</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#c084fc"></span>C4</span>
+      <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)">✕ = vetor entrada</span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+  </div>
+</div>
+
+<script src="js/lvq.js"></script>
+<script src="js/lvq-ui.js"></script>
+<script>
+var exData, TOTAL, cur = 0, renderer;
+var PHASES = 3;
+function totalSteps(d) { return d.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+  if (isLast) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Resultado Final</span>';
+    document.getElementById('lp').innerHTML   = buildLvqSummaryPanel(exData);
+    renderer.draw(exData.neuron_classes, exData.final_weights, null);
+    document.getElementById('cnote').textContent = 'Mapa final — neurônios modificados destacados';
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    step.neuron_classes = exData.neuron_classes;
+    step.phase          = phase;
+    var pNames = ['apresentar vetor','encontrar vencedor','atualizar peso'];
+    var pBadges = ['b1','b2','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Vetor <strong>[' + step.input.x.join(', ') + ']</strong> ' + step.input.cls +
+      ' (' + (step.pi+1) + '/' + exData.config.n_train + ')' +
+      ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = buildLvqPanel(step, phase, exData.config);
+    var ws = phase < 2 ? step.weights_before : step.weights_after;
+    renderer.draw(exData.neuron_classes, ws, phase >= 0 ? step : null);
+    document.getElementById('cnote').textContent = phase >= 1
+      ? 'Vencedor: n' + (step.winner+1) + ' (' + step.winner_cls + ') d=' + step.dists[step.winner].toFixed(4) + ' → ' + (step.match ? 'ATRAI' : 'REPELE')
+      : 'x=[' + step.input.x.join(', ') + '] classe=' + step.input.cls;
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+function rebuild() {
+  var alpha = parseFloat(document.getElementById('inpA').value) || 0.5;
+  exData   = lvq_run(alpha);
+  TOTAL    = totalSteps(exData);
+  renderer = new LvqCanvas(document.getElementById('cv'));
+  cur = 0; render();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1); }
+  if (e.key==='ArrowLeft')               { e.preventDefault(); go(-1); }
+  if (e.key==='Home')                    { e.preventDefault(); goTo(0); }
+  if (e.key==='End')                     { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>
