@@ -70,8 +70,8 @@ function render() {
   var isLast = cur === TOTAL - 1;
   if (isLast) {
     document.getElementById('slbl').innerHTML = '<span class="badge b1">Resultado Final</span>';
-    document.getElementById('lp').innerHTML   = tsp_summaryPanel(exData);
-    renderer.draw(exData.final_weights, null, true, exData.final_mapping);
+    document.getElementById('lp').innerHTML   = buildSomTspSummaryPanel(exData);
+    renderer.draw(exData.cities, exData.final_weights, null, true, exData.final_mapping);
     document.getElementById('cnote').textContent = 'Mapa final · rota ≈ ' + exData.tour_dist + ' unidades';
   } else {
     var step = exData.steps[si()], phase = ph();
@@ -80,9 +80,9 @@ function render() {
     document.getElementById('slbl').innerHTML =
       'Cidade <strong>' + step.city.label + '</strong> (' + (step.pi+1) + '/' + exData.config.nc + ')' +
       ' iter ' + step.iter + ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
-    document.getElementById('lp').innerHTML = tsp_buildPanel(step, phase, exData.config);
+    document.getElementById('lp').innerHTML = buildSomTspPanel(step, phase, exData.config);
     var ws = phase < 2 ? step.weights_before : step.weights_after;
-    renderer.draw(ws, phase >= 1 ? step : null, false, null);
+    renderer.draw(exData.cities, ws, phase >= 1 ? step : null, false, null);
     document.getElementById('cnote').textContent = phase >= 1
       ? 'BMU: n' + (step.winner+1) + '  ·  vizinhos: ' + step.neighbors.map(function(n){return 'n'+(n+1);}).join(', ')
       : 'Cidade ' + step.city.label + ' = [' + step.city.x + ', ' + step.city.y + ']';
@@ -100,7 +100,7 @@ function rebuild() {
   if (isNaN(radius0)) radius0 = 3;
   exData   = tsp_run(alpha, n_iters, n_neurons, radius0);
   TOTAL    = totalSteps(exData);
-  renderer = new TSP_CanvasRenderer(document.getElementById('cv'));
+  renderer = new SomTspCanvas(document.getElementById('cv'));
   cur = 0; render();
 }
 
