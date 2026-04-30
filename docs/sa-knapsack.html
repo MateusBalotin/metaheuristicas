@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 11.1 — Simulated Annealing</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:58px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 11</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Atividade 11.1 — Simulated Annealing</span>
+</div>
+<h1>Atividade 11.2 — SA para o Problema da Mochila</h1>
+<p class="subtitle">n=15 itens · P=275 · α=0.9 · L=1 · T₀=19 · V=3 · S₀=vazio · UFPR MNE 740</p>
+
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Algoritmo SA — Mochila</summary>
+  <div style="font-size:11px;color:var(--text3);line-height:2;padding:10px 14px;background:var(--bg2);border-radius:8px;border:0.5px solid var(--border3);margin-top:8px;font-family:monospace">
+    Inicialização: S = S₀, T = T₀<br>
+    Repita:<br>
+    &nbsp;&nbsp;i=1, nsucess=0<br>
+    &nbsp;&nbsp;Repita:<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Gere S_nova vizinha de S (2-opt)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;ΔE = f(S_nova) − f(S)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;P = e^(−ΔE/T)<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;Se ΔE ≤ 0 ou P > rnd → S = S_nova, nsucess++<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;i = i+1<br>
+    &nbsp;&nbsp;Até nsucess ≥ L ou i > V<br>
+    &nbsp;&nbsp;T = α·T<br>
+    Até nsucess = 0 ou iteração ≥ M
+  </div>
+</details>
+
+<div class="cfg-bar">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.9"  min="0.1" max="0.99" step="0.01">
+  <label>L:</label>
+  <input type="number" id="inpL" value="1"    min="1"   max="10"   step="1">
+  <label>T₀:</label>
+  <input type="number" id="inpT" value="19"   min="1"   max="100"  step="1">
+  <label>V:</label>
+  <input type="number" id="inpV" value="3"    min="1"   max="10"   step="1">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Resultado final</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#3a7fd4;border-radius:2px;display:inline-block"></span>em best</span> <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px"><span style="width:10px;height:10px;background:#EF9F27;border-radius:2px;display:inline-block"></span>item modificado</span> <span style="font-size:10px;color:var(--text3)">cinza = não selecionado</span>
+    </div>
+    <canvas id="cv" width="420" height="380" style="width:420px;height:380px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+  </div>
+</div>
+
+<script src="js/sa-knapsack.js"></script>
+<script src="js/sa-knapsack-ui.js"></script>
+<script>
+var exData, TOTAL, cur = 0, renderer;
+var PHASES = 3;
+function totalSteps(d) { return d.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+  if (isLast) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Resultado Final</span>';
+    document.getElementById('lp').innerHTML   = buildSaKsSummaryPanel(exData);
+    renderer.draw(exData, null, -1);
+    document.getElementById('cnote').textContent =
+      'Best: ' + exData.best_tour.join('→') + '→' + exData.best_tour[0] +
+      '  custo=' + exData.best_cost.toFixed(4);
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    var pNames  = ['gerar vizinha', 'calcular ΔE e aceitar', 'atualizar T'];
+    var pBadges = ['b1', 'b2', 'b4'];
+    document.getElementById('slbl').innerHTML =
+      'Iteração <strong>' + step.iter + '</strong>' +
+      ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = buildSaKsPanel(step, phase, exData.config);
+    renderer.draw(exData, step, phase);
+    document.getElementById('cnote').textContent = phase === 1
+      ? (step.nsucess > 0
+          ? 'Aceito: itens=' + step.x_after.map(function(v,i){return v?i+1:0;}).filter(Boolean).join(',') + '  val=' + step.val_after
+          : 'Nenhuma aceita — S inalterada')
+      : 'T=' + step.T.toFixed(4) + '  S: ' + 'itens=' + step.x_before.map(function(v,i){return v?i+1:0;}).filter(Boolean).join(',') + '  val=' + step.val_before;
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+function rebuild() {
+  var alpha = parseFloat(document.getElementById('inpA').value) || 0.9;
+  var L     = parseInt(  document.getElementById('inpL').value) || 1;
+  var T0    = parseFloat(document.getElementById('inpT').value) || 10;
+  var V     = parseInt(  document.getElementById('inpV').value) || 2;
+  exData   = saks_run(alpha, L, T0, V, 50, 275, 42);
+  TOTAL    = totalSteps(exData);
+  renderer = new SaKsCanvas(document.getElementById('cv'));
+  cur = 0; render();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1);  }
+  if (e.key==='ArrowLeft')               { e.preventDefault(); go(-1); }
+  if (e.key==='Home')                    { e.preventDefault(); goTo(0); }
+  if (e.key==='End')                     { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>

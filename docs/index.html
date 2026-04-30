@@ -92,7 +92,7 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
       <a class="card" href="mlp-momentum.html">
         <div class="card-label">Exercise 2</div>
         <div class="card-title">MLP with Momentum</div>
-        <div class="card-desc">5 patterns · 3 hidden neurons · sigmoid · fixed initial weights · γ=0.6 · momentum term visible in updates</div>
+        <div class="card-desc">5 patterns · 3 hidden neurons · sigmoid · fixed initial weights · γ=0.6</div>
         <span class="badge" style="background:#e0f4ec;color:#065f46">γ = 0.6</span>
       </a>
     </div>
@@ -104,13 +104,13 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
       <a class="card" href="rbf.html">
         <div class="card-label">Exercise 5</div>
         <div class="card-title">RBF Function Approximation</div>
-        <div class="card-desc">sin(x)+4cos(x)−1 · 21 points · [-2,4] · 4 Gaussian centers · w=(G<sup>T</sup>G)<sup>-1</sup>G<sup>T</sup>d · step-by-step G matrix build</div>
+        <div class="card-desc">sin(x)+4cos(x)−1 · 21 points · [-2,4] · 4 Gaussian centers · w=(G<sup>T</sup>G)<sup>-1</sup>G<sup>T</sup>d</div>
         <span class="badge" style="background:#f0e8ff;color:#6d28d9">Least squares</span>
       </a>
       <a class="card" href="rbf-cls.html">
         <div class="card-label">Exercise 6</div>
         <div class="card-title">RBF Classification</div>
-        <div class="card-desc">22 training · 8 test · q=3 fixed centers · σ=5 · classify: y≥0→+1 · decision region on final step</div>
+        <div class="card-desc">22 training · 8 test · q=3 fixed centers · σ=5 · classify: y≥0→+1</div>
         <span class="badge" style="background:#f0e8ff;color:#6d28d9">Fixed centers</span>
       </a>
     </div>
@@ -122,13 +122,13 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
       <a class="card" href="hebb.html">
         <div class="card-label">Exercise 4</div>
         <div class="card-title">Hebb Network Classification</div>
-        <div class="card-desc">22 training · 8 test · inputs normalized to [−1,1] · always updates · Δw = α·x̂·d · configurable α &amp; iterations</div>
+        <div class="card-desc">22 training · 8 test · inputs normalized to [−1,1] · always updates · Δw = α·x̂·d</div>
         <span class="badge" style="background:#fef3c7;color:#92400e">Hebbian learning</span>
       </a>
       <a class="card" href="som.html">
         <div class="card-label">Exercise 2</div>
         <div class="card-title">Self-Organizing Map</div>
-        <div class="card-desc">7 training patterns · 5D input · 2×3 grid (6 neurons) · Euclidean distance · decreasing α &amp; radius</div>
+        <div class="card-desc">7 training patterns · 5D input · 2×3 grid (6 neurons) · decreasing α &amp; radius</div>
         <span class="badge" style="background:#fce7f3;color:#9d174d">Competitive learning</span>
       </a>
     </div>
@@ -140,13 +140,13 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
       <a class="card" href="som-tsp.html">
         <div class="card-label">Atividade 6.1</div>
         <div class="card-title">SOM para o Caixeiro Viajante</div>
-        <div class="card-desc">Burma14 · 14 cidades · anel de N neurônios · topologia ring · distância Euclidiana · rota por BMU</div>
+        <div class="card-desc">Burma14 · 14 cidades · anel de N neurônios · topologia ring · rota por BMU</div>
         <span class="badge" style="background:#fce7f3;color:#9d174d">Competitive learning</span>
       </a>
       <a class="card" href="lvq.html">
         <div class="card-label">Atividade 6.2</div>
         <div class="card-title">Learning Vector Quantization</div>
-        <div class="card-desc">4 classes · 16 neurônios · atrai mesma classe · repele diferente · 5 vetores de treino · α configurável</div>
+        <div class="card-desc">4 classes · 16 neurônios · atrai mesma classe · repele diferente · 5 vetores</div>
         <span class="badge" style="background:#fef3c7;color:#92400e">LVQ</span>
       </a>
     </div>
@@ -158,19 +158,88 @@ body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);min
       <a class="card" href="rbf-temporal.html">
         <div class="card-label">Exercício 7 / Atividade 7.1</div>
         <div class="card-title">RBF — Entradas y</div>
-        <div class="card-desc">x=[y_t, y_{t+1}] · 2 centros · σ=1 · 8 padrões · w via mínimos quadrados · sistema 3×3</div>
+        <div class="card-desc">x=[y_t, y_{t+1}] · 2 centros · σ=1 · 8 padrões · sistema 3×3</div>
         <span class="badge" style="background:#f0e8ff;color:#6d28d9">Least squares</span>
       </a>
       <a class="card" href="rbf-temporal-t.html">
         <div class="card-label">Exercício 8 / Atividade 7.2</div>
         <div class="card-title">RBF — Entradas t</div>
-        <div class="card-desc">x=[t, t+1] · 3 centros · σ=1 · 8 padrões · w via mínimos quadrados · sistema 4×4</div>
+        <div class="card-desc">x=[t, t+1] · 3 centros · σ=1 · 8 padrões · sistema 4×4</div>
         <span class="badge" style="background:#f0e8ff;color:#6d28d9">Least squares</span>
       </a>
     </div>
   </div>
 
-  <div class="footer">
+  <div class="section">
+    <div class="section-title">Activity 8 — Redes Recorrentes</div>
+    <div class="cards">
+      <a class="card" href="elman-jordan.html">
+        <div class="card-label">Exercício 8</div>
+        <div class="card-title">Elman e Jordan — XOR e AND</div>
+        <div class="card-desc">2 entradas · 2 neurônios escondidos · contexto z(t-1)/y(t-1) · backprop · XOR ou AND · configurável</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Recurrent</span>
+      </a>
+      <a class="card" href="ativ82.html">
+        <div class="card-label">Atividade 8.2</div>
+        <div class="card-title">Elman e Jordan — Classificação A/B</div>
+        <div class="card-desc">Exercício 1 (pág. 27) · 5 padrões · A₁A₂A₃ classe 1 · B₁B₂ classe 0 · Elman ou Jordan · α e iterações configuráveis</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Recurrent</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Activity 9 — Busca Tabu</div>
+    <div class="cards">
+      <a class="card" href="tabu-search.html">
+        <div class="card-label">Exercício 9</div>
+        <div class="card-title">Busca Tabu — TSP</div>
+        <div class="card-desc">10 cidades · vizinhança 2-opt · tenure k configurável · critério de aspiração · histórico iteração a iteração</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Metaheurística</span>
+      </a>
+      <a class="card" href="tabu-knapsack.html">
+        <div class="card-label">Atividade 9.2</div>
+        <div class="card-title">Busca Tabu — Mochila</div>
+        <div class="card-desc">n=15 itens · P=275 · flip de 1 item · solução inicial vazia · converge para val=142 · tenure k configurável</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Metaheurística</span>
+      </a>
+    </div>
+  </div>
+    <div class="section">
+    <div class="section-title">Activity 10 — Nuvem de Partículas (PSO)</div>
+    <div class="cards">
+      <a class="card" href="pso.html">
+        <div class="card-label">Atividade 10.1</div>
+        <div class="card-title">PSO — Minimização de f(x)</div>
+        <div class="card-desc">f(x)=cos(x)+x/5 · 4 partículas · w=0.2 · η₁=0.3 · η₂=0.5 · 10 iterações · visualização da trajetória</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Metaheurística</span>
+      </a>
+      <a class="card" href="pso-knapsack.html">
+        <div class="card-label">Atividade 10.2</div>
+        <div class="card-title">PSO — Problema da Mochila</div>
+        <div class="card-desc">n=15 itens · P=275 · 3 partículas · velocidade por transposições · c⊗v=truncar · step-by-step</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">PSO discreto</span>
+      </a>
+    </div>
+  </div>
+    <div class="section">
+    <div class="section-title">Activity 11 — Simulated Annealing</div>
+    <div class="cards">
+      <a class="card" href="simulated-annealing.html">
+        <div class="card-label">Atividade 11.1</div>
+        <div class="card-title">Simulated Annealing — TSP</div>
+        <div class="card-desc">10 cidades · α=0.9 · L=1 · T₀=10 · V=2 · 2-opt · aceitação probabilística · step-by-step</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Metaheurística</span>
+      </a>
+      <a class="card" href="sa-knapsack.html">
+        <div class="card-label">Atividade 11.2</div>
+        <div class="card-title">SA — Problema da Mochila</div>
+        <div class="card-desc">n=15 itens · P=275 · α=0.9 · L=1 · T₀=19 · V=3 · S₀=vazio · converge val=142</div>
+        <span class="badge" style="background:#e0f4ec;color:#065f46">Metaheurística</span>
+      </a>
+    </div>
+  </div>
+    <div class="footer">
     Perceptron: δ=0.2 · α=1 · w=0 · θ=0 &nbsp;|&nbsp; Adaline: α=0.01 &nbsp;|&nbsp; MLP: configurable<br>
     Use ← → arrow keys to navigate steps · End to jump to test results
   </div>

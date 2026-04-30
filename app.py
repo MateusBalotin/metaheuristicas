@@ -1,18 +1,25 @@
 from flask import Flask, render_template, jsonify, request
 import threading, webbrowser
 
-from algorithms import perceptron    as perceptron_algo
-from algorithms import adaline       as adaline_algo
-from algorithms import mlp           as mlp_algo
-from algorithms import mlp_momentum as mlp_momentum_algo
-from algorithms import func_approx  as func_approx_algo
-from algorithms import rbf          as rbf_algo
-from algorithms import hebb         as hebb_algo
-from algorithms import som          as som_algo
-from algorithms import som_tsp      as som_tsp_algo
-from algorithms import lvq          as lvq_algo
-from algorithms import rbf_temporal as rbf_temporal_algo
+from algorithms import perceptron      as perceptron_algo
+from algorithms import adaline         as adaline_algo
+from algorithms import mlp             as mlp_algo
+from algorithms import mlp_momentum   as mlp_momentum_algo
+from algorithms import func_approx    as func_approx_algo
+from algorithms import rbf            as rbf_algo
+from algorithms import hebb           as hebb_algo
+from algorithms import som            as som_algo
+from algorithms import som_tsp        as som_tsp_algo
+from algorithms import lvq            as lvq_algo
+from algorithms import rbf_temporal   as rbf_temporal_algo
 from algorithms import rbf_temporal_t as rbf_temporal_t_algo
+from algorithms import elman_jordan   as elman_jordan_algo
+from algorithms import tabu_search     as tabu_search_algo
+from algorithms import tabu_knapsack   as tabu_knapsack_algo
+from algorithms import pso             as pso_algo
+from algorithms import pso_knapsack    as pso_knapsack_algo
+from algorithms import simulated_annealing as sa_algo
+from algorithms import sa_knapsack        as sa_ks_algo
 
 app = Flask(__name__)
 
@@ -74,6 +81,14 @@ def page_rbf_temporal():
 def page_rbf_temporal_t():
     return render_template("rbf_temporal_t.html")
 
+@app.route("/elman-jordan")
+def page_elman_jordan():
+    return render_template("elman_jordan.html")
+
+@app.route("/ativ82")
+def page_ativ82():
+    return render_template("ativ82.html")
+
 @app.route("/api/perceptron/<ex>")
 def api_perceptron(ex: str):
     configs = {
@@ -110,7 +125,8 @@ def api_func_approx():
     alpha    = float(request.args.get("alpha",    0.1))
     n_iters  = int(  request.args.get("n_iters",  500))
     seed     = int(  request.args.get("seed",     42))
-    return jsonify(func_approx_algo.run(n_hidden=n_hidden, alpha=alpha, n_iters=n_iters, seed=seed))
+    return jsonify(func_approx_algo.run(n_hidden=n_hidden, alpha=alpha,
+                                        n_iters=n_iters, seed=seed))
 
 @app.route("/api/rbf")
 def api_rbf():
@@ -142,10 +158,8 @@ def api_som_tsp():
     n_iters   = int(  request.args.get("n_iters",   3))
     n_neurons = int(  request.args.get("n_neurons", 20))
     radius0   = int(  request.args.get("radius0",   3))
-    return jsonify(som_tsp_algo.run(
-        alpha=alpha, n_iters=n_iters,
-        n_neurons=n_neurons, radius0=radius0,
-    ))
+    return jsonify(som_tsp_algo.run(alpha=alpha, n_iters=n_iters,
+                                    n_neurons=n_neurons, radius0=radius0))
 
 @app.route("/api/lvq")
 def api_lvq():
@@ -159,6 +173,100 @@ def api_rbf_temporal():
 @app.route("/api/rbf-temporal-t")
 def api_rbf_temporal_t():
     return jsonify(rbf_temporal_t_algo.run())
+
+@app.route("/api/elman-jordan")
+def api_elman_jordan():
+    network = request.args.get("network", "elman")
+    dataset = request.args.get("dataset", "xor")
+    alpha   = float(request.args.get("alpha",   0.5))
+    n_iters = int(  request.args.get("n_iters", 3))
+    seed    = int(  request.args.get("seed",    42))
+    return jsonify(elman_jordan_algo.run(dataset=dataset, network=network,
+                                         alpha=alpha, n_iters=n_iters, seed=seed))
+
+@app.route("/api/ativ82")
+def api_ativ82():
+    network = request.args.get("network", "elman")
+    alpha   = float(request.args.get("alpha",   0.5))
+    n_iters = int(  request.args.get("n_iters", 3))
+    return jsonify(elman_jordan_algo.run(dataset="ativ82", network=network,
+                                         alpha=alpha, n_iters=n_iters, seed=42))
+
+
+@app.route("/tabu-search")
+def page_tabu_search():
+    return render_template("tabu_search.html")
+
+@app.route("/api/tabu-search")
+def api_tabu_search():
+    k        = int(request.args.get("k",        3))
+    max_iter = int(request.args.get("max_iter", 20))
+    return jsonify(tabu_search_algo.run(k=k, max_iter=max_iter))
+
+
+@app.route("/tabu-knapsack")
+def page_tabu_knapsack():
+    return render_template("tabu_knapsack.html")
+
+@app.route("/api/tabu-knapsack")
+def api_tabu_knapsack():
+    k        = int(request.args.get("k",        3))
+    max_iter = int(request.args.get("max_iter", 20))
+    return jsonify(tabu_knapsack_algo.run(k=k, max_iter=max_iter))
+
+
+@app.route("/pso")
+def page_pso():
+    return render_template("pso.html")
+
+@app.route("/api/pso")
+def api_pso():
+    w       = float(request.args.get("w",       0.2))
+    n1      = float(request.args.get("n1",      0.3))
+    n2      = float(request.args.get("n2",      0.5))
+    n_iters = int(  request.args.get("n_iters", 10))
+    return jsonify(pso_algo.run(w=w, n1=n1, n2=n2, n_iters=n_iters))
+
+
+@app.route("/pso-knapsack")
+def page_pso_knapsack():
+    return render_template("pso_knapsack.html")
+
+@app.route("/api/pso-knapsack")
+def api_pso_knapsack():
+    w       = float(request.args.get("w",       0.2))
+    n1      = float(request.args.get("n1",      0.3))
+    n2      = float(request.args.get("n2",      0.5))
+    n_iters = int(  request.args.get("n_iters", 10))
+    return jsonify(pso_knapsack_algo.run(w=w, n1=n1, n2=n2, n_iters=n_iters))
+
+
+@app.route("/simulated-annealing")
+def page_sa():
+    return render_template("simulated_annealing.html")
+
+@app.route("/api/simulated-annealing")
+def api_sa():
+    alpha    = float(request.args.get("alpha",  0.9))
+    L        = int(  request.args.get("L",       1))
+    T0       = float(request.args.get("T0",     10.0))
+    V        = int(  request.args.get("V",       2))
+    max_iter = int(  request.args.get("max_iter",50))
+    return jsonify(sa_algo.run(alpha=alpha, L=L, T0=T0, V=V, max_iter=max_iter))
+
+
+@app.route("/sa-knapsack")
+def page_sa_ks():
+    return render_template("sa_knapsack.html")
+
+@app.route("/api/sa-knapsack")
+def api_sa_ks():
+    alpha    = float(request.args.get("alpha",  0.9))
+    L        = int(  request.args.get("L",       1))
+    T0       = float(request.args.get("T0",     19.0))
+    V        = int(  request.args.get("V",       3))
+    max_iter = int(  request.args.get("max_iter",50))
+    return jsonify(sa_ks_algo.run(alpha=alpha, L=L, T0=T0, V=V, max_iter=max_iter))
 
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:5000")).start()
