@@ -20,6 +20,11 @@ from algorithms import pso             as pso_algo
 from algorithms import pso_knapsack    as pso_knapsack_algo
 from algorithms import simulated_annealing as sa_algo
 from algorithms import sa_knapsack        as sa_ks_algo
+from algorithms import aco                 as aco_algo
+from algorithms import genetic_function     as gf_algo
+from algorithms import genetic_tsp          as gt_algo
+from algorithms import de_function           as de_algo
+from algorithms import de_function_max       as dem_algo
 
 app = Flask(__name__)
 
@@ -267,6 +272,70 @@ def api_sa_ks():
     V        = int(  request.args.get("V",       3))
     max_iter = int(  request.args.get("max_iter",50))
     return jsonify(sa_ks_algo.run(alpha=alpha, L=L, T0=T0, V=V, max_iter=max_iter))
+
+@app.route("/aco")
+def page_aco():
+    return render_template("aco.html")
+
+@app.route("/api/aco")
+def api_aco():
+    alpha   = float(request.args.get("alpha",   0.4))
+    beta    = float(request.args.get("beta",    0.6))
+    rho     = float(request.args.get("rho",     0.5))
+    Q       = float(request.args.get("Q",       100.0))
+    n_ants  = int(  request.args.get("n_ants",  6))
+    n_iters = int(  request.args.get("n_iters", 2))
+    seed    = int(  request.args.get("seed",    7))
+    return jsonify(aco_algo.run(seed=seed, n_ants=n_ants, n_iters=n_iters,
+                                alpha=alpha, beta=beta, rho=rho, Q=Q))
+
+
+@app.route("/genetic-function")
+def page_genetic_function():
+    return render_template("genetic_function.html")
+
+@app.route("/api/genetic-function")
+def api_genetic_function():
+    n_gen = int(  request.args.get("n_gen", 5))
+    p_mut = float(request.args.get("p_mut", 0.1))
+    seed  = int(  request.args.get("seed",  13))
+    return jsonify(gf_algo.run(seed=seed, n_gen=n_gen, p_mut=p_mut))
+
+@app.route("/genetic-tsp")
+def page_genetic_tsp():
+    return render_template("genetic_tsp.html")
+
+@app.route("/api/genetic-tsp")
+def api_genetic_tsp():
+    n_gen = int(  request.args.get("n_gen", 5))
+    p_mut = float(request.args.get("p_mut", 0.2))
+    seed  = int(  request.args.get("seed",  21))
+    return jsonify(gt_algo.run(seed=seed, n_gen=n_gen, p_mut=p_mut))
+
+
+@app.route("/de-function")
+def page_de_function():
+    return render_template("de_function.html")
+
+@app.route("/api/de-function")
+def api_de_function():
+    n_iter = int(  request.args.get("n_iter", 4))
+    p_cr   = float(request.args.get("p_cr",   0.7))
+    seed   = int(  request.args.get("seed",   14))
+    return jsonify(de_algo.run(seed=seed, n_iter=n_iter, p_cr=p_cr))
+
+@app.route("/de-function-max")
+def page_de_function_max():
+    return render_template("de_function_max.html")
+
+@app.route("/api/de-function-max")
+def api_de_function_max():
+    n_iter  = int(  request.args.get("n_iter",  4))
+    p_cr    = float(request.args.get("p_cr",    0.7))
+    f_scale = float(request.args.get("f_scale", 0.5))
+    seed    = int(  request.args.get("seed",    14))
+    return jsonify(dem_algo.run(seed=seed, n_iter=n_iter, f_scale=f_scale, p_cr=p_cr))
+
 
 if __name__ == "__main__":
     threading.Timer(1.0, lambda: webbrowser.open("http://localhost:5000")).start()

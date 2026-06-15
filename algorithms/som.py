@@ -16,7 +16,7 @@ def _dist2(x: list, w: list) -> float:
 
 
 def _grid_dist(pos_i: tuple, pos_j: tuple) -> int:
-    """Chebyshev distance between two grid positions."""
+    """distancia de Chebyshev entre duas posicoes da grade"""
     return max(abs(pos_i[0] - pos_j[0]), abs(pos_i[1] - pos_j[1]))
 
 
@@ -26,7 +26,7 @@ def _neighborhood(winner: int, radius: int, positions: list) -> list:
 
 
 def _radius_for_iter(iteration: int, n_iters: int) -> int:
-    """Winner-only: radius always 0."""
+    """apenas vencedor: raio sempre 0"""
     return 0
 
 
@@ -62,7 +62,7 @@ def run(dataset_key: str = "som_ex2",
     n_dim = ds["n_inputs"]
     n_neu = rows * cols
 
-    # Grid positions: row-major
+    # posicoes na grade (ordem por linha)
     positions = [(r, c) for r in range(rows) for c in range(cols)]
 
     weights = [row[:] for row in ds["init_weights"]]
@@ -77,12 +77,12 @@ def run(dataset_key: str = "som_ex2",
             x = p["x"]
             w_before = [row[:] for row in weights]
 
-            # Distances to all neurons
+            # distancias para todos os neuronios
             dists  = [_dist2(x, weights[i]) for i in range(n_neu)]
             winner = dists.index(min(dists))
             nbrs   = _neighborhood(winner, radius, positions)
 
-            # Update
+            # atualizacao
             deltas = []
             for ni in range(n_neu):
                 if ni in nbrs:

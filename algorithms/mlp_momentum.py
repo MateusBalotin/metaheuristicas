@@ -54,7 +54,7 @@ def _backprop_momentum(x: list[float], d: int, ws: dict, prev_dws: dict,
 
     delta_out = _r6(y * (1 - y) * (d - y))
 
-    # Output layer: Δw_j = α·δ_out·z_j + γ·Δw_j(prev)
+    # camada de saida: dw_j = alpha*delta_out*z_j + gamma*dw_j(ant)
     dW   = []
     d_tb = _r6(alpha * delta_out + gamma * prev_dws["theta_b"])
     for j in range(p):
@@ -63,8 +63,8 @@ def _backprop_momentum(x: list[float], d: int, ws: dict, prev_dws: dict,
         new_ws["W"][j] = _r6(ws["W"][j] + dw)
     new_ws["theta_b"] = _r6(ws["theta_b"] + d_tb)
 
-    # Hidden layer: δ_j = δ_out · w_j · z_j·(1−z_j)
-    # Δv_ij = α·δ_j·x_i + γ·Δv_ij(prev)
+    # camada escondida: delta_j = delta_out * w_j * z_j*(1-z_j)
+    # dv_ij = alpha*delta_j*x_i + gamma*dv_ij(ant)
     delta_h = [_r6(delta_out * ws["W"][j] * z[j] * (1 - z[j])) for j in range(p)]
     dV      = []
     d_ta    = []

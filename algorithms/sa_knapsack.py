@@ -89,7 +89,7 @@ def run(alpha: float = 0.9,
         while nsucess < L and i_count < V and i_count < len(nb):
             m = nb[i_count]
             i_count += 1
-            # Maximize value: ΔE = val_current - val_new (positive = worse)
+            # maximiza valor: dE = val_atual - val_novo (positivo = pior)
             delta_E = _r4(val_current - m["v"])
 
             if delta_E <= 0:
@@ -139,7 +139,7 @@ def run(alpha: float = 0.9,
         if nsucess == 0:
             break
 
-    # Fix x_before tracking
+    # ajusta x_before
     x_track = [0] * N
     for step in steps:
         step["x_before"]  = x_track[:]

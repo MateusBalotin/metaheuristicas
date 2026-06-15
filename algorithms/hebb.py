@@ -61,7 +61,7 @@ def run(dataset_key: str = "hebb_ex4",
             y_star = _r6(w1 * xh1 + w2 * xh2 + theta)
             cls    = _classify(y_star)
 
-            # Hebb: always update regardless of correct/incorrect
+            # Hebb: atualiza sempre, independente de acerto/erro
             dw1    = _r6(alp * xh1 * p["d"])
             dw2    = _r6(alp * xh2 * p["d"])
             dtheta = _r6(alp * p["d"])

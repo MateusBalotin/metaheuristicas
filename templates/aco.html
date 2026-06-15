@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 12 — Colônia de Formigas (ACO · TSP)</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:62px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 12</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Colônia de Formigas — TSP</span>
+</div>
+<h1>Atividade 12 — Otimização por Colônia de Formigas (ACO)</h1>
+<p class="subtitle">TSP de 6 cidades (A–F) · 2 iterações · tabela de feromônios aleatória · α=0.4 · β=0.6 · distância Euclidiana · UFPR · Metaheurísticas e Aplicações</p>
+
+<div class="cfg-bar">
+  <label>α:</label>
+  <input type="number" id="inpA" value="0.4" min="0" max="3" step="0.1">
+  <label>β:</label>
+  <input type="number" id="inpB" value="0.6" min="0" max="3" step="0.1">
+  <label>ρ:</label>
+  <input type="number" id="inpR" value="0.5" min="0" max="0.95" step="0.05">
+  <label>Q:</label>
+  <input type="number" id="inpQ" value="100" min="1" max="1000" step="1" style="width:70px">
+  <label>Formigas:</label>
+  <input type="number" id="inpM" value="6" min="1" max="12" step="1">
+  <label>Iterações:</label>
+  <input type="number" id="inpI" value="2" min="1" max="6" step="1">
+  <label>Seed (τ₀):</label>
+  <input type="number" id="inpS" value="7" min="1" max="9999" step="1">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Resultado final</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:240px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:18px;height:3px;background:rgba(24,95,165,0.4)"></span>feromônio τ</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:18px;height:3px;background:#EF9F27"></span>rota da formiga</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:18px;height:0;border-top:2px dashed #6ee7b7"></span>melhor</span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+    <div id="errmsg" style="color:red;font-size:11px;margin-top:6px"></div>
+  </div>
+</div>
+
+<script src="/static/js/aco-ui.js"></script>
+<script>
+var exData, STEPS, TOTAL = 1, cur = 0, renderer;
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var s = STEPS[cur];
+  var lp = document.getElementById('lp');
+  var slbl = document.getElementById('slbl');
+  var cnote = document.getElementById('cnote');
+  try {
+    if (s.kind === 'init') {
+      slbl.innerHTML = '<span class="badge b1">Configuração inicial</span>';
+      lp.innerHTML = buildAcoInitPanel(exData);
+      renderer.draw(exData.cities, exData.names, { tau: exData.init_tau });
+      cnote.textContent = 'Feromônios iniciais — espessura ∝ τ';
+    } else if (s.kind === 'construct') {
+      var it = exData.iterations[s.ii], ant = it.ants[s.ai], step = ant.steps[s.si];
+      slbl.innerHTML = 'Iter ' + it.iter + ' · Formiga ' + ant.k +
+        ' · em <strong>' + step.current + '</strong> → escolher <span class="badge b1">construir</span>';
+      lp.innerHTML = buildAcoConstructPanel(it, ant, step, exData.config);
+      var partial = ant.tour.slice(0, ant.tour.indexOf(step.current) + 1);
+      renderer.draw(exData.cities, exData.names, {
+        tau: it.tau_before, partialTour: partial,
+        currentCity: step.current, candidate: step.chosen,
+        bestTour: (s.ii > 0 || s.ai > 0) ? (s.ai > 0 ? it.best_tour : exData.iterations[s.ii-1].best_tour) : null,
+      });
+      cnote.textContent = step.current + ' → ' + step.chosen + '  (p=' + Number(step.probs[step.allowed.indexOf(step.chosen)]).toFixed(4) + ')';
+    } else if (s.kind === 'deposit') {
+      var it = exData.iterations[s.ii], ant = it.ants[s.ai];
+      slbl.innerHTML = 'Iter ' + it.iter + ' · Formiga ' + ant.k +
+        ' · rota completa <span class="badge b4">depósito Δτ</span>';
+      lp.innerHTML = buildAcoDepositPanel(it, ant, exData.config);
+      renderer.draw(exData.cities, exData.names, { tau: it.tau_before, fullTour: ant.tour });
+      cnote.textContent = 'L' + ant.k + ' = ' + Number(ant.length).toFixed(2) + '  ·  Δτ = ' + Number(ant.deposit).toFixed(4);
+    } else if (s.kind === 'update') {
+      var it = exData.iterations[s.ii];
+      slbl.innerHTML = 'Iter ' + it.iter + ' <span class="badge b2">atualizar feromônios</span>';
+      lp.innerHTML = buildAcoUpdatePanel(it, exData.config);
+      renderer.draw(exData.cities, exData.names, { tau: it.tau_after, bestTour: it.best_tour });
+      cnote.textContent = 'Melhor L = ' + Number(it.best_len).toFixed(2) + '  ·  evaporação ρ=' + exData.config.rho;
+    } else {
+      slbl.innerHTML = '<span class="badge b1">Resultado Final</span>';
+      lp.innerHTML = buildAcoSummaryPanel(exData);
+      renderer.draw(exData.cities, exData.names, {
+        tau: exData.iterations[exData.iterations.length-1].tau_after,
+        bestTour: exData.best_tour,
+      });
+      cnote.textContent = 'Melhor rota ≈ ' + Number(exData.best_len).toFixed(2) + ' unidades';
+    }
+  } catch(e) {
+    document.getElementById('errmsg').textContent = 'Render error: ' + e.message;
+    console.error(e);
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+function rebuild() {
+  var alpha = document.getElementById('inpA').value;
+  var beta  = document.getElementById('inpB').value;
+  var rho   = document.getElementById('inpR').value;
+  var Q     = document.getElementById('inpQ').value;
+  var m     = document.getElementById('inpM').value;
+  var iters = document.getElementById('inpI').value;
+  var seed  = document.getElementById('inpS').value;
+  var url = '/api/aco?alpha=' + alpha + '&beta=' + beta + '&rho=' + rho +
+            '&Q=' + Q + '&n_ants=' + m + '&n_iters=' + iters + '&seed=' + seed;
+  fetch(url).then(function(r){ return r.json(); }).then(function(data) {
+    exData   = data;
+    STEPS    = acoBuildSteps(exData);
+    TOTAL    = STEPS.length;
+    renderer = new AcoCanvas(document.getElementById('cv'));
+    cur = 0; render();
+  }).catch(function(e){
+    document.getElementById('errmsg').textContent = 'Fetch error: ' + e.message;
+  });
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1); }
+  if (e.key==='ArrowLeft')               { e.preventDefault(); go(-1); }
+  if (e.key==='Home')                    { e.preventDefault(); goTo(0); }
+  if (e.key==='End')                     { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 13.1 - AG Minimizacao de Funcao</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:62px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">&larr; Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 13.1</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">AG - Minimizacao de Funcao</span>
+</div>
+<h1>Atividade 13.1 - Algoritmo Genetico (minimizar f(x))</h1>
+<p class="subtitle">f(x) = (x-4)&sup2; - (x-8)&sup3; + 5 · x inteiro em [0,15] · codificacao 4 bits · 4 individuos · 5 geracoes</p>
+
+<div class="cfg-bar">
+  <label>Geracoes:</label>
+  <input type="number" id="inpG" value="5" min="1" max="12" step="1">
+  <label>Prob. mutacao:</label>
+  <input type="number" id="inpM" value="0.1" min="0" max="1" step="0.05">
+  <label>Seed:</label>
+  <input type="number" id="inpS" value="13" min="1" max="9999" step="1">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>&larr; Prev</button>
+  <button id="bnext" onclick="go(+1)">Next &rarr;</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">&rarr; Resultado</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:240px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4a9eff"></span>populacao</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF9F27"></span>melhor</span>
+    </div>
+    <canvas id="cv" width="420" height="360" style="width:420px;height:360px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+    <div id="errmsg" style="color:red;font-size:11px;margin-top:6px"></div>
+  </div>
+</div>
+
+<script src="/static/js/genetic-function-ui.js"></script>
+<script>
+var exData, STEPS, TOTAL = 1, cur = 0, renderer;
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var s = STEPS[cur], lp = document.getElementById('lp'), slbl = document.getElementById('slbl'), cnote = document.getElementById('cnote');
+  try {
+    if (s.kind === 'init') {
+      slbl.innerHTML = '<span class="badge b1">Populacao inicial</span>';
+      lp.innerHTML = gf_buildInit(exData);
+      var rows = gf_initRows(exData);
+      renderer.draw(rows.map(function (r) { return r.x; }), null);
+      cnote.textContent = 'curva f(x) e populacao inicial';
+    } else if (s.kind === 'eval') {
+      var g = exData.generations[s.gi];
+      slbl.innerHTML = 'Geracao ' + g.gen + ' <span class="badge b1">avaliacao</span>';
+      lp.innerHTML = gf_buildEval(g);
+      renderer.draw(g.rows.map(function (r) { return r.x; }), g.gen_best.x);
+      cnote.textContent = 'melhor: x=' + g.gen_best.x + ' f=' + g.gen_best.f.toFixed(2);
+    } else if (s.kind === 'cross') {
+      var g = exData.generations[s.gi];
+      slbl.innerHTML = 'Geracao ' + g.gen + ' <span class="badge b2">selecao + cruzamento</span>';
+      lp.innerHTML = gf_buildCross(g);
+      renderer.draw(g.rows.map(function (r) { return r.x; }), g.gen_best.x);
+      cnote.textContent = 'roleta e crossover de 1 ponto';
+    } else if (s.kind === 'mut') {
+      var g = exData.generations[s.gi];
+      slbl.innerHTML = 'Geracao ' + g.gen + ' <span class="badge b4">mutacao + nova pop</span>';
+      lp.innerHTML = gf_buildMut(g);
+      var xs = g.new_pop.map(function (ch) { return parseInt(ch, 2); });
+      renderer.draw(xs, g.best_so_far.x);
+      cnote.textContent = 'nova populacao formada';
+    } else {
+      slbl.innerHTML = '<span class="badge b1">Resultado final</span>';
+      lp.innerHTML = gf_buildSummary(exData);
+      renderer.draw(exData.final_pop.map(function (r) { return r.x; }), exData.best.x);
+      cnote.textContent = 'minimo: x=' + exData.best.x + ' f=' + exData.best.f.toFixed(2);
+    }
+  } catch (e) { document.getElementById('errmsg').textContent = 'Render error: ' + e.message; }
+}
+
+function go(d) { cur = Math.max(0, Math.min(TOTAL - 1, cur + d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+function rebuild() {
+  var gn = document.getElementById('inpG').value;
+  var pm = document.getElementById('inpM').value;
+  var sd = document.getElementById('inpS').value;
+  fetch('/api/genetic-function?n_gen=' + gn + '&p_mut=' + pm + '&seed=' + sd)
+    .then(function (r) { return r.json(); }).then(function (data) {
+      exData = data; STEPS = gf_buildSteps(exData); TOTAL = STEPS.length;
+      renderer = new GfCanvas(document.getElementById('cv')); cur = 0; render();
+    }).catch(function (e) { document.getElementById('errmsg').textContent = 'Fetch error: ' + e.message; });
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End') { e.preventDefault(); goTo(TOTAL - 1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>

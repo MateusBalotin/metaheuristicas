@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atividade 14.2 - Evolucao Diferencial (maximizar)</title>
+<link rel="stylesheet" href="/static/js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:62px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/">&larr; Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Atividade 14.2</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Evolucao Diferencial - Maximizacao</span>
+</div>
+<h1>Atividade 14.2 - Evolucao Diferencial (maximizar f(x,y))</h1>
+<p class="subtitle">f(x,y) = sen(x/3) + cos(6y/5) + e^(y/5) + 2 · x,y in [-10,10] · 6 individuos · F=0.5 · P_CR=0.7 · vetor alvo = melhor (DE/best/1)</p>
+
+<div class="cfg-bar">
+  <label>Iteracoes:</label>
+  <input type="number" id="inpI" value="4" min="1" max="10" step="1">
+  <label>P_CR:</label>
+  <input type="number" id="inpC" value="0.7" min="0" max="1" step="0.05">
+  <label>Seed:</label>
+  <input type="number" id="inpS" value="14" min="1" max="9999" step="1">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>&larr; Prev</button>
+  <button id="bnext" onclick="go(+1)">Next &rarr;</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">&rarr; Resultado</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:240px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#4a9eff"></span>populacao</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF9F27"></span>alvo (xbest)</span>
+      <span style="display:inline-flex;align-items:center;gap:5px"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;border:2px solid #6ee7b7"></span>melhor</span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+    <div id="errmsg" style="color:red;font-size:11px;margin-top:6px"></div>
+  </div>
+</div>
+
+<script src="/static/js/de-ui.js"></script>
+<script>
+var exData, STEPS, TOTAL = 1, cur = 0, renderer;
+function ffun(x, y) { return Math.sin(x/3.0) + Math.cos(6.0*y/5.0) + Math.exp(y/5.0) + 2.0; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var s = STEPS[cur], lp = document.getElementById('lp'), slbl = document.getElementById('slbl'), cnote = document.getElementById('cnote');
+  try {
+    if (s.kind === 'init') {
+      slbl.innerHTML = '<span class="badge b1">Populacao inicial</span>';
+      lp.innerHTML = de_buildInit(exData);
+      renderer.draw(exData.init_pop, null, null);
+      cnote.textContent = 'mapa de calor: vermelho=alto (melhor p/ maximizar)';
+    } else if (s.kind === 'eval') {
+      var g = exData.iterations[s.gi];
+      slbl.innerHTML = 'Iteracao ' + g.iter + ' <span class="badge b1">populacao + alvo</span>';
+      lp.innerHTML = de_buildEval(exData, g);
+      renderer.draw(g.pop, g.xbest, g.best_so_far.vec);
+      cnote.textContent = 'xbest = (' + g.xbest[0].toFixed(2) + ', ' + g.xbest[1].toFixed(2) + ')';
+    } else if (s.kind === 'trials') {
+      var g = exData.iterations[s.gi];
+      slbl.innerHTML = 'Iteracao ' + g.iter + ' <span class="badge b2">mutacao + selecao</span>';
+      lp.innerHTML = de_buildTrials(exData, g);
+      renderer.draw(g.new_pop, g.xbest, g.best_so_far.vec);
+      cnote.textContent = 'nova populacao apos selecao';
+    } else {
+      slbl.innerHTML = '<span class="badge b1">Resultado final</span>';
+      lp.innerHTML = de_buildSummary(exData);
+      renderer.draw(exData.iterations[exData.iterations.length - 1].new_pop, null, exData.best.vec);
+      cnote.textContent = 'maximo: f=' + exData.best.f.toFixed(4);
+    }
+  } catch (e) { document.getElementById('errmsg').textContent = 'Render error: ' + e.message; }
+}
+
+function go(d) { cur = Math.max(0, Math.min(TOTAL - 1, cur + d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+function rebuild() {
+  var ni = document.getElementById('inpI').value, pc = document.getElementById('inpC').value, sd = document.getElementById('inpS').value;
+  fetch('/api/de-function-max?n_iter=' + ni + '&p_cr=' + pc + '&seed=' + sd)
+    .then(function (r) { return r.json(); }).then(function (data) {
+      exData = data; exData._f = ffun;
+      STEPS = de_buildSteps(exData); TOTAL = STEPS.length;
+      renderer = new DeCanvas(document.getElementById('cv'), ffun, exData.config.bounds, 'maximizar');
+      cur = 0; render();
+    }).catch(function (e) { document.getElementById('errmsg').textContent = 'Fetch error: ' + e.message; });
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End') { e.preventDefault(); goTo(TOTAL - 1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>

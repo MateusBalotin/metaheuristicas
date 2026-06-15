@@ -76,7 +76,7 @@ def run(dataset_key: str = "rbf_ex5",
 
     centers = _select_centers(train, q_, sd)
 
-    # Build G matrix: rows = patterns, cols = phi_1..phi_q + bias(1)
+    # monta matriz G: linhas = padroes, colunas = phi_1..phi_q + bias(1)
     G_rows = []
     row_details = []
     for p in train:
@@ -97,7 +97,7 @@ def run(dataset_key: str = "rbf_ex5",
     GTd = _mat_vec(GT, d_vec)
     w   = _solve(GTG, GTd)
 
-    # Evaluate
+    # avaliacao
     results = []
     mse = 0.0
     for i, p in enumerate(train):

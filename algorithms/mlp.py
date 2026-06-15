@@ -15,7 +15,7 @@ def _sigmoid(x: float) -> float:
 
 
 def _rng(seed: int):
-    """Deterministic PRNG (mulberry32). Matches the JS implementation for reproducibility."""
+    """gerador pseudoaleatorio deterministico (mulberry32)"""
     s = seed & 0xFFFFFFFF
     def _next() -> float:
         nonlocal s

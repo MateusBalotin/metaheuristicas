@@ -126,7 +126,7 @@ def run(alpha: float = 0.9,
             'best_cost':  best_cost,
             'best_tour':  best_S[:],
         })
-        # Fix S_before
+        # ajusta S_before
         steps[-1]['S_before'] = [t['tour'][:] for t in it_steps[:1]] and \
             (nb[0]['tour'][:] if it_steps else S[:])
 
@@ -135,7 +135,7 @@ def run(alpha: float = 0.9,
         if nsucess == 0:
             break
 
-    # Fix S_before properly
+    # ajusta S_before
     s_track = INIT_TOUR[:]
     for step in steps:
         step['S_before'] = s_track[:]
