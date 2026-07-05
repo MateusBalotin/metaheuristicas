@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trabalho — Q1 Busca Tabu (Mochila com compartimentos)</title>
+<link rel="stylesheet" href="js/style.css">
+<style>
+.cfg-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;padding:10px 14px;border:0.5px solid var(--border3);border-radius:8px;background:var(--bg2);font-size:12px}
+.cfg-bar label{color:var(--text3)}
+.cfg-bar input[type=number]{width:62px;padding:3px 6px;border:0.5px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-size:12px;font-family:monospace}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="index.html">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Trabalho Final</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Q1 — Mochila com compartimentos</span>
+</div>
+<h1>Trabalho — Questão 1: Busca Tabu para a Mochila com Compartimentos</h1>
+<p class="subtitle">n=20 itens · P_TOTAL=510 · k=3 compartimentos (P₁=240, P₂=190, P₃=170) · solução inicial vazia · UFPR MNE 740</p>
+
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Modelagem: variáveis, função de avaliação e penalidades</summary>
+  <div style="font-size:11px;color:var(--text3);line-height:1.9;padding:10px 14px;background:var(--bg2);border-radius:8px;border:0.5px solid var(--border3);margin-top:8px;font-family:monospace">
+    <strong style="color:var(--text2)">Variáveis:</strong> vetor a = (a₁, ..., a₂₀), com aⱼ ∈ {0, 1, 2, 3}<br>
+    &nbsp;&nbsp;aⱼ = 0 → item j fora da mochila · aⱼ = i → item j no compartimento i<br>
+    &nbsp;&nbsp;(equivale à matriz binária z: z<sub>ij</sub> = 1 ⇔ aⱼ = i; a codificação por vetor garante Σᵢ z<sub>ij</sub> ≤ 1)<br><br>
+    <strong style="color:var(--text2)">Função de avaliação (com penalidades):</strong><br>
+    &nbsp;&nbsp;f(a) = Σⱼ vⱼ·[aⱼ&gt;0] − μ·( Σᵢ max(0, wᵢ − Pᵢ) + max(0, W − P_TOTAL) )<br>
+    &nbsp;&nbsp;wᵢ = peso do compartimento i · W = Σᵢ wᵢ · μ = 1 &gt; max(vⱼ/pⱼ) = 8/14, logo violar capacidade nunca compensa<br><br>
+    <strong style="color:var(--text2)">Busca Tabu:</strong><br>
+    &nbsp;&nbsp;1. S₁ = solução vazia<br>
+    &nbsp;&nbsp;2. Vizinhança: alterar aⱼ de um item (inserir, remover ou mover entre compartimentos)<br>
+    &nbsp;&nbsp;3. Escolher movimento de maior f não-tabu, OU tabu com f &gt; f(S*) (aspiração)<br>
+    &nbsp;&nbsp;4. Atributo tabu: item j alterado, tenure k=3 · decrementar os demais a cada iteração<br>
+    &nbsp;&nbsp;5. Erro ao final de cada iteração: erro = FO* − FO, com FO* = 99 (ótimo validado por solver exato)
+  </div>
+</details>
+
+<div class="cfg-bar">
+  <label>k (tenure):</label>
+  <input type="number" id="inpK" value="3" min="1" max="10" step="1">
+  <label>Iterações:</label>
+  <input type="number" id="inpI" value="20" min="3" max="50" step="1">
+  <button onclick="rebuild()" style="font-size:11px;padding:4px 10px;cursor:pointer;border-radius:6px;border:0.5px solid var(--info);background:var(--info-bg);color:var(--info)">↺ Rebuild</button>
+</div>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Melhor solução</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;background:#3a7fd4;border-radius:2px"></span>comp 1
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;background:#2d9e78;border-radius:2px"></span>comp 2
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;background:#8b5cf6;border-radius:2px"></span>comp 3
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;background:#EF9F27;border-radius:2px"></span>item modificado
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="420" style="width:420px;height:420px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+  </div>
+</div>
+
+<script src="js/trabalho-mochila.js"></script>
+<script src="js/trabalho-mochila-ui.js"></script>
+<script>
+var exData, TOTAL, cur = 0, renderer;
+var PHASES = 3;
+function totalSteps(d) { return d.steps.length * PHASES + 1; }
+function si() { return Math.floor(cur / PHASES); }
+function ph() { return cur % PHASES; }
+
+function render() {
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var isLast = cur === TOTAL - 1;
+  if (isLast) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Melhor Solução</span>';
+    document.getElementById('lp').innerHTML   = tm_buildSummaryPanel(exData);
+    renderer.draw(exData, null);
+    document.getElementById('cnote').textContent =
+      'Melhor: FO=' + exData.best_f.toFixed(1) + '  W=' + exData.best_W + '/' +
+      exData.config.P_total + '  erro final=' + exData.erro_final.toFixed(1);
+  } else {
+    var step = exData.steps[si()], phase = ph();
+    var pNames  = ['avaliar vizinhança','escolher movimento','tabu + erro'];
+    var pBadges = ['b1','b2','b4'];
+    document.getElementById('slbl').innerHTML =
+      'Iteração <strong>' + step.iter + '</strong>' +
+      ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+    document.getElementById('lp').innerHTML = tm_buildPanel(step, phase, exData.config);
+    renderer.draw(exData, step);
+    document.getElementById('cnote').textContent = phase >= 1
+      ? 'item ' + (step.item+1) + ': ' + tm_moveName(step.orig, step.dest) +
+        '  FO: ' + step.f_before.toFixed(1) + ' → ' + step.f_after.toFixed(1) +
+        '  erro=' + step.erro.toFixed(1) +
+        (step.aspiration_used ? '  [ASPIRAÇÃO]' : '')
+      : 'FO atual=' + step.f_before.toFixed(1) + '  pesos=[' + step.w_before.join(', ') + ']';
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+function rebuild() {
+  var k     = parseInt(document.getElementById('inpK').value) || 3;
+  var iters = parseInt(document.getElementById('inpI').value) || 20;
+  exData   = tm_run(k, iters);
+  TOTAL    = totalSteps(exData);
+  renderer = new TmCanvas(document.getElementById('cv'));
+  cur = 0; render();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1);  }
+  if (e.key==='ArrowLeft')               { e.preventDefault(); go(-1); }
+  if (e.key==='Home')                    { e.preventDefault(); goTo(0); }
+  if (e.key==='End')                     { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+rebuild();
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trabalho — Q2 Busca Tabu + AG (TSP)</title>
+<link rel="stylesheet" href="/static/js/style.css">
+</head>
+<body>
+<div class="topbar">
+  <a href="/">← Home</a>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px;color:var(--text2)">Trabalho Final</span>
+  <span class="topbar-sep">/</span>
+  <span style="font-size:12px">Q2 — Caixeiro Viajante</span>
+</div>
+<h1>Trabalho — Questão 2: Busca Tabu (iterações 4 e 5) + Algoritmo Genético</h1>
+<p class="subtitle">6 cidades · S₄ = A–B–C–E–F–D–A · tabu inicial: B-E=2, C-E=3, E-F=1 · listas de 3 movimentos · população do AG = {S₄, S₅, S₆} · UFPR MNE 740</p>
+
+<details style="margin-bottom:14px">
+  <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Elementos da resolução</summary>
+  <div style="font-size:11px;color:var(--text3);line-height:1.9;padding:10px 14px;background:var(--bg2);border-radius:8px;border:0.5px solid var(--border3);margin-top:8px;font-family:monospace">
+    <strong style="color:var(--text2)">2.1 Busca Tabu:</strong> movimento = troca de duas cidades (A fixa como origem)<br>
+    &nbsp;&nbsp;A cada iteração: lista com os 3 movimentos de menor custo · escolher o melhor não-tabu,<br>
+    &nbsp;&nbsp;OU tabu com custo &lt; melhor custo (critério de aspiração) · tenure = 3<br>
+    &nbsp;&nbsp;Erro ao final de cada iteração: erro = custo − custo*, com custo* = 28,1 (ótimo por enumeração)<br><br>
+    <strong style="color:var(--text2)">2.2 Algoritmo Genético:</strong> população = {S₄, S₅, S₆}<br>
+    &nbsp;&nbsp;fitness = (custo_pior − custo) + 1 · seleção por roleta (r₁=0,45 · r₂=0,25 · r₃=0,10)<br>
+    &nbsp;&nbsp;1 cruzamento OX (cortes nas posições 4 e 5) · 1 mutação por troca (posições 2 e 3)<br>
+    &nbsp;&nbsp;Nova população com elitismo: {melhor anterior, filho, mutante}
+  </div>
+</details>
+
+<div class="nav">
+  <button id="bprev" onclick="go(-1)" disabled>← Prev</button>
+  <button id="bnext" onclick="go(+1)">Next →</button>
+  <span class="slbl" id="slbl"></span>
+  <button onclick="goTo(0)" style="font-size:11px;padding:3px 8px">Reset</button>
+  <button onclick="goTo(TOTAL-1)" style="font-size:11px;padding:3px 8px;background:var(--info-bg);color:var(--info);border:0.5px solid var(--info);border-radius:6px;cursor:pointer">→ Melhor solução</button>
+</div>
+
+<div class="split">
+  <div id="lp" style="min-height:200px"></div>
+  <div>
+    <div class="leg">
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:18px;height:2px;background:#4a7090;border-top:2px dashed #4a7090"></span>rota atual
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:18px;height:2px;background:rgba(20,150,40,0.7)"></span>melhor rota
+      </span>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#EF9F27"></span>cidades trocadas
+      </span>
+    </div>
+    <canvas id="cv" width="420" height="400" style="width:420px;height:400px;border-radius:6px;display:block"></canvas>
+    <div id="cnote" style="font-size:10px;color:var(--text3);margin-top:6px;font-family:monospace"></div>
+  </div>
+</div>
+
+<script src="/static/js/trabalho-tsp.js"></script>
+<script src="/static/js/trabalho-tsp-ui.js"></script>
+<script>
+var exData = null;
+var TABU_PHASES = 3, GA_PHASES = 4;
+var N_TABU = 0, TOTAL = 1, cur = 0;
+var renderer = new TtCanvas(document.getElementById('cv'));
+
+function render() {
+  if (!exData) return;
+  document.getElementById('bprev').disabled = cur === 0;
+  document.getElementById('bnext').disabled = cur === TOTAL - 1;
+  var lp = document.getElementById('lp');
+  var cnote = document.getElementById('cnote');
+
+  if (cur === TOTAL - 1) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b1">Melhor Solução</span>';
+    lp.innerHTML = tt_buildSummaryPanel(exData);
+    renderer.draw(exData, null, exData.ga.best.tour, null);
+    cnote.textContent = 'Melhor: ' + exData.ga.best.tour.join('–') + '–A  custo=' +
+      exData.ga.best.cost.toFixed(1) + '  (ótimo)';
+  } else if (cur < N_TABU) {
+    var step  = exData.tabu.steps[Math.floor(cur / TABU_PHASES)];
+    var phase = cur % TABU_PHASES;
+    var pNames  = ['lista de movimentos','escolher movimento','tabu + erro'];
+    var pBadges = ['b1','b2','b4'];
+    document.getElementById('slbl').innerHTML =
+      '2.1 Busca Tabu — Iteração <strong>' + step.iter + '</strong>' +
+      ' <span class="badge ' + pBadges[phase] + '">' + pNames[phase] + '</span>';
+    lp.innerHTML = tt_buildTabuPanel(step, phase, exData.config);
+    var tour = phase >= 1 ? step.S_after : step.S_before;
+    renderer.draw(exData, tour, null, phase >= 1 ? step.move_cities : null);
+    cnote.textContent = phase >= 1
+      ? 'troca ' + step.move_cities[0] + '-' + step.move_cities[1] +
+        '  custo: ' + step.cost_before.toFixed(1) + ' → ' + step.cost_after.toFixed(1) +
+        (step.aspiration_used ? '  [ASPIRAÇÃO]' : '')
+      : 'S' + step.iter + ' = ' + step.S_before.join('–') + '–A  custo=' + step.cost_before.toFixed(1);
+  } else {
+    var gphase = cur - N_TABU;
+    var pNames  = ['fitness e seleção','cruzamento OX','mutação','nova população'];
+    var pBadges = ['b1','b2','b3','b4'];
+    document.getElementById('slbl').innerHTML =
+      '2.2 Algoritmo Genético <span class="badge ' + pBadges[gphase] + '">' +
+      pNames[gphase] + '</span>';
+    lp.innerHTML = tt_buildGaPanel(exData.ga, gphase, exData.config);
+    if (gphase === 1) {
+      renderer.draw(exData, exData.ga.child.tour, null, null);
+      cnote.textContent = 'filho = ' + exData.ga.child.tour.join('–') + '–A  custo=' +
+        exData.ga.child.cost.toFixed(1);
+    } else if (gphase === 2) {
+      var mp = exData.ga.mut_pos;
+      renderer.draw(exData, exData.ga.mut.tour, null,
+        [exData.ga.mut.tour[mp[0]], exData.ga.mut.tour[mp[1]]]);
+      cnote.textContent = 'mutante = ' + exData.ga.mut.tour.join('–') + '–A  custo=' +
+        exData.ga.mut.cost.toFixed(1);
+    } else if (gphase === 3) {
+      renderer.draw(exData, null, exData.ga.best.tour, null);
+      cnote.textContent = 'melhor = ' + exData.ga.best.tour.join('–') + '–A  custo=' +
+        exData.ga.best.cost.toFixed(1);
+    } else {
+      renderer.draw(exData, exData.tabu.S6, null, null);
+      cnote.textContent = 'população: S4, S5, S6';
+    }
+  }
+}
+
+function go(d)   { cur = Math.max(0, Math.min(TOTAL-1, cur+d)); render(); }
+function goTo(i) { cur = i; render(); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(1);  }
+  if (e.key==='ArrowLeft')               { e.preventDefault(); go(-1); }
+  if (e.key==='Home')                    { e.preventDefault(); goTo(0); }
+  if (e.key==='End')                     { e.preventDefault(); goTo(TOTAL-1); }
+});
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', render);
+fetch('/api/trabalho-tsp')
+  .then(function(r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+  .then(function(data) {
+    exData = data;
+    N_TABU = data.tabu.steps.length * TABU_PHASES;
+    TOTAL  = N_TABU + GA_PHASES + 1;
+    cur = 0; render();
+  })
+  .catch(function(err) {
+    document.getElementById('lp').innerHTML = '<div style="color:red;font-size:12px">Error: ' + err.message + '</div>';
+  });
+</script>
+</body>
+</html>

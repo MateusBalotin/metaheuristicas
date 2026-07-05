@@ -25,6 +25,8 @@ from algorithms import genetic_function     as gf_algo
 from algorithms import genetic_tsp          as gt_algo
 from algorithms import de_function           as de_algo
 from algorithms import de_function_max       as dem_algo
+from algorithms import trabalho_mochila      as trabalho_mochila_algo
+from algorithms import trabalho_tsp          as trabalho_tsp_algo
 
 app = Flask(__name__)
 
@@ -335,6 +337,27 @@ def api_de_function_max():
     f_scale = float(request.args.get("f_scale", 0.5))
     seed    = int(  request.args.get("seed",    14))
     return jsonify(dem_algo.run(seed=seed, n_iter=n_iter, f_scale=f_scale, p_cr=p_cr))
+
+
+
+@app.route("/trabalho-mochila")
+def page_trabalho_mochila():
+    return render_template("trabalho_mochila.html")
+
+@app.route("/api/trabalho-mochila")
+def api_trabalho_mochila():
+    k        = int(request.args.get("k",        3))
+    max_iter = int(request.args.get("max_iter", 20))
+    return jsonify(trabalho_mochila_algo.run(k=k, max_iter=max_iter))
+
+
+@app.route("/trabalho-tsp")
+def page_trabalho_tsp():
+    return render_template("trabalho_tsp.html")
+
+@app.route("/api/trabalho-tsp")
+def api_trabalho_tsp():
+    return jsonify(trabalho_tsp_algo.run())
 
 
 if __name__ == "__main__":
