@@ -64,7 +64,7 @@
 var exData = tt_run();
 var TABU_PHASES = 3, GA_PHASES = 4;
 var N_TABU = exData.tabu.steps.length * TABU_PHASES;
-var TOTAL  = N_TABU + GA_PHASES + 1;
+var TOTAL  = N_TABU + GA_PHASES + 2;
 var cur = 0;
 var renderer = new TtCanvas(document.getElementById('cv'));
 
@@ -74,15 +74,20 @@ function render() {
   var lp = document.getElementById('lp');
   var cnote = document.getElementById('cnote');
 
-  if (cur === TOTAL - 1) {
+  if (cur === 0) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b3">0. decisões de implementação</span>';
+    lp.innerHTML = tt_buildIntroPanel(exData.config);
+    renderer.draw(exData, exData.S4, null, null);
+    cnote.textContent = 'ponto de partida: S4 = ' + exData.S4.join('–') + '–A  custo=' + exData.S4_cost.toFixed(1);
+  } else if (cur === TOTAL - 1) {
     document.getElementById('slbl').innerHTML = '<span class="badge b1">Melhor Solução</span>';
     lp.innerHTML = tt_buildSummaryPanel(exData);
     renderer.draw(exData, null, exData.ga.best.tour, null);
     cnote.textContent = 'Melhor: ' + exData.ga.best.tour.join('–') + '–A  custo=' +
       exData.ga.best.cost.toFixed(1) + '  (ótimo)';
-  } else if (cur < N_TABU) {
-    var step  = exData.tabu.steps[Math.floor(cur / TABU_PHASES)];
-    var phase = cur % TABU_PHASES;
+  } else if (cur - 1 < N_TABU) {
+    var step  = exData.tabu.steps[Math.floor((cur - 1) / TABU_PHASES)];
+    var phase = (cur - 1) % TABU_PHASES;
     var pNames  = ['lista de movimentos','escolher movimento','tabu + erro'];
     var pBadges = ['b1','b2','b4'];
     document.getElementById('slbl').innerHTML =
@@ -97,7 +102,7 @@ function render() {
         (step.aspiration_used ? '  [ASPIRAÇÃO]' : '')
       : 'S' + step.iter + ' = ' + step.S_before.join('–') + '–A  custo=' + step.cost_before.toFixed(1);
   } else {
-    var gphase = cur - N_TABU;
+    var gphase = cur - 1 - N_TABU;
     var pNames  = ['fitness e seleção','cruzamento OX','mutação','nova população'];
     var pBadges = ['b1','b2','b3','b4'];
     document.getElementById('slbl').innerHTML =

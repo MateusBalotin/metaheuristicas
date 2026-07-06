@@ -298,3 +298,44 @@ function tt_buildSummaryPanel(exData) {
   html += '</div>';
   return html;
 }
+
+function tt_buildIntroPanel(cfg) {
+  var S = 'font-size:11.5px;line-height:1.9;color:var(--text2)';
+  var html = '<span class="badge b3">Passo 0 — decisões da resolução</span>';
+
+  html += '<div class="card"><div class="ct">2.1 Movimentos e lista de candidatos</div>' +
+    '<div style="' + S + '">' +
+    'Movimento: troca de duas cidades na rota, mantendo <strong>A fixa</strong> na primeira posição. ' +
+    'Isso elimina rotas equivalentes por rotação e é consistente com a lista tabu dada, ' +
+    'cujos pares não envolvem A. São C(5,2) = 10 trocas por iteração; a lista de candidatos reúne as ' +
+    '<strong>3 de menor custo</strong>, com desempate por regra fixa (custo e posições). ' +
+    'O melhor custo conhecido no início da iteração 4 é o de S₄ (47,4), leitura natural de uma trajetória em melhora.' +
+    '</div></div>';
+
+  html += '<div class="card"><div class="ct">2.1 Tabu, tenure e aspiração</div>' +
+    '<div style="' + S + '">' +
+    'Escolhe-se o melhor candidato não-tabu, ou um candidato tabu cujo custo supere o melhor já visto ' +
+    '(critério de aspiração). Atualização da lista: todas as tenures caem 1, saem as que zeram e a troca ' +
+    'executada entra com tenure ' + cfg.tenure + ', o mesmo esquema da lista dada {B-E:2, C-E:3, E-F:1}. ' +
+    'Na iteração 5 a melhor troca (B-E, custo 29,7) está proibida, mas como 29,7 &lt; 36,9 ela entra pelo ' +
+    'critério de aspiração.' +
+    '</div></div>';
+
+  html += '<div class="card"><div class="ct">2.2 Algoritmo Genético</div>' +
+    '<div style="' + S + '">' +
+    'População = {S₄, S₅, S₆}. Fitness para minimização com roleta: (custo do pior − custo) + 1, ' +
+    'a mesma transformação da Atividade 13. Os sorteios da roleta são declarados para a resolução poder ' +
+    'ser conferida à mão: r = 0,45 seleciona S₆ (pai 1), 0,25 seleciona S₅ (pai 2) e 0,10 seleciona S₅ ' +
+    '(base da mutação). Cruzamento OX com cortes nas posições 4 e 5: copia o segmento do pai 1 e completa ' +
+    'na ordem do pai 2. Mutação por troca das posições 2 e 3. Nova população com elitismo: o melhor da ' +
+    'geração anterior (S₆) é preservado e o filho e o mutante substituem os dois piores.' +
+    '</div></div>';
+
+  html += '<div class="card"><div class="ct">Erro e desenho</div>' +
+    '<div style="' + S + '">' +
+    'erro = custo − 28,1, onde 28,1 é o custo ótimo obtido por enumeração completa das 60 rotas distintas. ' +
+    'As coordenadas das cidades no desenho são apenas ilustrativas; todos os custos vêm da matriz do enunciado.' +
+    '</div></div>';
+
+  return html;
+}

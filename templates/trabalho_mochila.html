@@ -26,15 +26,15 @@
   <summary style="cursor:pointer;font-size:12px;color:var(--text3);user-select:none">▸ Modelagem: variáveis, função de avaliação e penalidades</summary>
   <div style="font-size:11px;color:var(--text3);line-height:1.9;padding:10px 14px;background:var(--bg2);border-radius:8px;border:0.5px solid var(--border3);margin-top:8px;font-family:monospace">
     <strong style="color:var(--text2)">Variáveis:</strong> vetor a = (a₁, ..., a₂₀), com aⱼ ∈ {0, 1, 2, 3}<br>
-    &nbsp;&nbsp;aⱼ = 0 → item j fora da mochila · aⱼ = i → item j no compartimento i<br>
+    &nbsp;&nbsp;aⱼ = 0 → item j fora da mochila · aⱼ = 1, 2 ou 3 → item j no compartimento correspondente<br>
     &nbsp;&nbsp;(equivale à matriz binária z: z<sub>ij</sub> = 1 ⇔ aⱼ = i; a codificação por vetor garante Σᵢ z<sub>ij</sub> ≤ 1)<br><br>
     <strong style="color:var(--text2)">Função de avaliação (com penalidades):</strong><br>
     &nbsp;&nbsp;f(a) = Σⱼ vⱼ·[aⱼ&gt;0] − μ·( Σᵢ max(0, wᵢ − Pᵢ) + max(0, W − P_TOTAL) )<br>
-    &nbsp;&nbsp;wᵢ = peso do compartimento i · W = Σᵢ wᵢ · μ = 1 &gt; max(vⱼ/pⱼ) = 8/14, logo violar capacidade nunca compensa<br><br>
+    &nbsp;&nbsp;wᵢ = peso do compartimento i · W = Σᵢ wᵢ · μ = 1 &gt; max(vⱼ/pⱼ) = 8/14: cada unidade de excesso custa mais do que a melhor densidade de valor dos itens, e o máximo de f coincide com o ótimo viável (FO*=99, verificado por solver exato)<br><br>
     <strong style="color:var(--text2)">Busca Tabu:</strong><br>
     &nbsp;&nbsp;1. S₁ = solução vazia<br>
     &nbsp;&nbsp;2. Vizinhança: alterar aⱼ de um item (inserir, remover ou mover entre compartimentos)<br>
-    &nbsp;&nbsp;3. Escolher movimento de maior f não-tabu, OU tabu com f &gt; f(S*) (aspiração)<br>
+    &nbsp;&nbsp;3. Escolher movimento de maior f não-tabu, ou tabu com f &gt; f(S*) (aspiração)<br>
     &nbsp;&nbsp;4. Atributo tabu: item j alterado, tenure k=3 · decrementar os demais a cada iteração<br>
     &nbsp;&nbsp;5. Erro ao final de cada iteração: erro = FO* − FO, com FO* = 99 (ótimo validado por solver exato)
   </div>
@@ -83,15 +83,21 @@
 <script>
 var exData, TOTAL, cur = 0, renderer;
 var PHASES = 3;
-function totalSteps(d) { return d.steps.length * PHASES + 1; }
-function si() { return Math.floor(cur / PHASES); }
-function ph() { return cur % PHASES; }
+function totalSteps(d) { return d.steps.length * PHASES + 2; }
+function si() { return Math.floor((cur - 1) / PHASES); }
+function ph() { return (cur - 1) % PHASES; }
 
 function render() {
   document.getElementById('bprev').disabled = cur === 0;
   document.getElementById('bnext').disabled = cur === TOTAL - 1;
   var isLast = cur === TOTAL - 1;
-  if (isLast) {
+  if (cur === 0) {
+    document.getElementById('slbl').innerHTML = '<span class="badge b3">0. decisões de modelagem</span>';
+    document.getElementById('lp').innerHTML   = tm_buildIntroPanel(exData.config);
+    renderer.draw(exData, {a_after: exData.steps[0].a_before, w_after: exData.steps[0].w_before, item: -1});
+    document.getElementById('cnote').textContent =
+      'solução inicial: mochila vazia · FO=0.0 · erro=' + exData.config.fo_ref.toFixed(1);
+  } else if (isLast) {
     document.getElementById('slbl').innerHTML = '<span class="badge b1">Melhor Solução</span>';
     document.getElementById('lp').innerHTML   = tm_buildSummaryPanel(exData);
     renderer.draw(exData, null);

@@ -130,7 +130,7 @@ function tm_buildPanel(step, phase, cfg) {
     '</div></div>';
 
   if (phase === 0) {
-    html += '<div class="card"><div class="ct">Passo 1 — Top 5 movimentos por FO = valor − μ·excesso</div>';
+    html += '<div class="card"><div class="ct">Passo 1 — Top 5 movimentos por FO = valor − <span style="text-transform:none">μ</span>·excesso</div>';
     html += '<div style="font-family:monospace;font-size:11px;color:var(--text3);margin-bottom:8px">' +
       'Movimento: alterar aⱼ (inserir, remover ou mover item entre compartimentos)</div>';
     html += '<table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:10px">';
@@ -288,5 +288,51 @@ function tm_buildSummaryPanel(exData) {
       '<td style="text-align:center;padding:2px 5px;color:var(--success)">' + (s.is_new_best?'✓':'') + '</td></tr>';
   });
   html += '</tbody></table></div>';
+  return html;
+}
+
+function tm_buildIntroPanel(cfg) {
+  var S = 'font-size:11.5px;line-height:1.9;color:var(--text2)';
+  var html = '<span class="badge b3">Passo 0 — decisões da resolução</span>';
+
+  html += '<div class="card"><div class="ct">Representação da solução</div>' +
+    '<div style="' + S + '">' +
+    'Vetor a = (a₁, …, a₂₀) com aⱼ ∈ {0, 1, 2, 3}: aⱼ = 0 indica que o item j ficou fora da mochila; ' +
+    'aⱼ = 1, 2 ou 3 indica o compartimento onde o item j foi colocado. ' +
+    'Equivale à matriz binária zᵢⱼ, com a vantagem de que a restrição de cada item ocupar no máximo ' +
+    'um compartimento fica satisfeita <strong>por construção</strong>, pois o vetor não coloca o mesmo ' +
+    'item em dois lugares. Restam as capacidades, tratadas por penalidade na função de avaliação. ' +
+    'Solução inicial: mochila vazia (todos os aⱼ = 0).' +
+    '</div></div>';
+
+  html += '<div class="card"><div class="ct">Função de avaliação e a escolha de <span style="text-transform:none">μ</span> = 1</div>' +
+    '<div style="' + S + '">' +
+    'f(a) = Σⱼ vⱼ·[aⱼ&gt;0] − μ·( Σᵢ max(0, wᵢ − Pᵢ) + max(0, W − P_TOTAL) ). ' +
+    'Soluções inviáveis podem ser avaliadas, mas pagam μ por unidade de peso excedente. ' +
+    'Como μ = 1 &gt; max(vⱼ/pⱼ) = 8/14 ≈ 0,57, cada unidade de excesso custa mais do que a melhor ' +
+    'densidade de valor entre os itens. Para esta instância, o máximo de f coincide com o ótimo viável ' +
+    '(FO* = 99, conferido por solver exato), então otimizar f resolve o problema original.' +
+    '</div></div>';
+
+  html += '<div class="card"><div class="ct">Vizinhança, lista tabu e aspiração</div>' +
+    '<div style="' + S + '">' +
+    'Vizinho: alterar <strong>um único</strong> aⱼ, o que cobre inserir o item (0 → 1, 2 ou 3), ' +
+    'remover (voltar a 0) e mover de compartimento. São até 60 vizinhos por iteração, todos avaliados. ' +
+    'Empates são resolvidos por uma regra fixa (maior FO; depois menor número do item; depois menor compartimento), ' +
+    'para a execução ser reproduzível à mão. ' +
+    'O atributo tabu é o <strong>item</strong> alterado, o que impede desfazer o movimento logo em seguida. ' +
+    'Tenure k = ' + cfg.k + ': a cada iteração as tenures caem 1 e o item escolhido entra com k. ' +
+    'Aspiração: um movimento tabu é aceito se a FO resultante superar a melhor FO já vista. ' +
+    'Depois de atingir o ótimo, a busca segue em movimentos laterais (FO constante), ' +
+    'comportamento esperado da Busca Tabu em platô.' +
+    '</div></div>';
+
+  html += '<div class="card"><div class="ct">Erro por iteração</div>' +
+    '<div style="' + S + '">' +
+    'O erro mostrado ao final de cada iteração é erro = FO* − FO, com FO* = ' + cfg.fo_ref.toFixed(0) +
+    ' obtido por solver exato, uma referência calculada fora da metaheurística. ' +
+    'Com os parâmetros padrão (k = 3, 20 iterações), a busca atinge FO = 99 na iteração 15 e o erro chega a 0.' +
+    '</div></div>';
+
   return html;
 }
